@@ -10,11 +10,13 @@ import {
   Hand,
   Measure,
   Note,
+  RepeatMarks,
   Score,
   TimeSignature,
   midiNumber,
   pitchName,
 } from '../model';
+import { unrollRepeats } from '../unroll';
 import {
   XNode,
   attrsOf,
@@ -53,6 +55,7 @@ interface RawMeasure {
   timeSignature?: TimeSignature;
   tempoBpm?: number;
   staffCount?: number;
+  repeats?: RepeatMarks;
 }
 
 export class MusicXmlError extends Error {}
@@ -113,11 +116,18 @@ function parsePart(part: XNode): RawMeasure[] {
         case 'direction': {
           const tempo = readTempo(el);
           if (tempo && raw.tempoBpm === undefined) raw.tempoBpm = tempo;
+          const sound = child(el, 'sound');
+          if (sound) readJumpMarks(attrsOf(sound), raw);
           break;
         }
         case 'sound': {
-          const tempo = attrsOf(el).tempo;
-          if (tempo && raw.tempoBpm === undefined) raw.tempoBpm = Number(tempo);
+          const a = attrsOf(el);
+          if (a.tempo && raw.tempoBpm === undefined) raw.tempoBpm = Number(a.tempo);
+          readJumpMarks(a, raw);
+          break;
+        }
+        case 'barline': {
+          readBarline(el, raw);
           break;
         }
         case 'backup': {
@@ -186,6 +196,38 @@ function readTempo(direction: XNode): number | undefined {
   return undefined;
 }
 
+function marks(raw: RawMeasure): RepeatMarks {
+  return (raw.repeats ??= {});
+}
+
+function readBarline(el: XNode, raw: RawMeasure): void {
+  const repeat = child(el, 'repeat');
+  if (repeat) {
+    const a = attrsOf(repeat);
+    if (a.direction === 'forward') marks(raw).repeatForward = true;
+    if (a.direction === 'backward') marks(raw).repeatBackward = { times: Number(a.times ?? 2) || 2 };
+  }
+  const ending = child(el, 'ending');
+  if (ending) {
+    const a = attrsOf(ending);
+    if (a.type === 'start') {
+      const nums = String(a.number ?? '1').split(/[,\s]+/).map(Number).filter((n) => n > 0);
+      marks(raw).endingStart = nums.length ? nums : [1];
+    } else if (a.type === 'stop' || a.type === 'discontinue') {
+      marks(raw).endingStop = true;
+    }
+  }
+}
+
+function readJumpMarks(a: Record<string, string>, raw: RawMeasure): void {
+  if (a.segno !== undefined) marks(raw).segno = true;
+  if (a.coda !== undefined) marks(raw).coda = true;
+  if (a.dacapo === 'yes') marks(raw).daCapo = true;
+  if (a.dalsegno !== undefined) marks(raw).dalSegno = true;
+  if (a.tocoda !== undefined) marks(raw).toCoda = true;
+  if (a.fine === 'yes') marks(raw).fine = true;
+}
+
 function beatUnitToQuarters(unit: string): number {
   switch (unit) {
     case 'whole': return 4;
@@ -215,6 +257,10 @@ function assemble(rawParts: RawMeasure[][], title?: string, composer?: string): 
     const tempo = slots.find((s) => s.tempoBpm !== undefined)?.tempoBpm;
     if (tempo !== undefined && initialTempo === undefined) initialTempo = tempo;
 
+    const repeats = slots.reduce<RepeatMarks | undefined>(
+      (acc, s) => (s.repeats ? { ...(acc ?? {}), ...s.repeats } : acc),
+      undefined,
+    );
     measures.push({
       index: i,
       number: slots[0]?.number ?? String(i + 1),
@@ -222,6 +268,7 @@ function assemble(rawParts: RawMeasure[][], title?: string, composer?: string): 
       durationBeats: duration,
       timeSignature: timeSig,
       tempoBpm: tempo,
+      repeats,
     });
     startBeat += duration;
   }
@@ -265,6 +312,7 @@ function assemble(rawParts: RawMeasure[][], title?: string, composer?: string): 
     notes,
     initialTempoBpm: initialTempo ?? DEFAULT_TEMPO,
     partCount: rawParts.length,
+    playbackOrder: unrollRepeats(measures),
   };
 }
 

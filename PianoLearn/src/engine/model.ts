@@ -29,6 +29,25 @@ export interface Note {
   partIndex: number;
 }
 
+/** Repeat / jump markings on a measure, as written in the score. */
+export interface RepeatMarks {
+  /** Left barline has a forward repeat (|:). */
+  repeatForward?: boolean;
+  /** Right barline has a backward repeat (:|). Times = total passes (default 2). */
+  repeatBackward?: { times: number };
+  /** Ending bracket starting at this measure, e.g. [1] or [1,2]. */
+  endingStart?: number[];
+  /** Ending bracket ending at this measure. */
+  endingStop?: boolean;
+  /** D.C. / D.S. / Coda / Fine marks (from <sound> attributes). */
+  segno?: boolean;
+  coda?: boolean;
+  daCapo?: boolean;
+  dalSegno?: boolean;
+  toCoda?: boolean;
+  fine?: boolean;
+}
+
 export interface Measure {
   /** 0-based position in the song. */
   index: number;
@@ -39,6 +58,7 @@ export interface Measure {
   timeSignature: TimeSignature;
   /** Tempo in effect at the start of this measure, if it changed here. */
   tempoBpm?: number;
+  repeats?: RepeatMarks;
 }
 
 export interface Score {
@@ -50,6 +70,11 @@ export interface Score {
   initialTempoBpm: number;
   /** Number of <part> elements seen. */
   partCount: number;
+  /**
+   * Measure indices in performed order, with repeats and endings unrolled.
+   * Equals [0..n-1] when the score has no repeats.
+   */
+  playbackOrder: number[];
 }
 
 export interface MeasureRange {

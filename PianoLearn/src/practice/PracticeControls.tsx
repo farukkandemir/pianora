@@ -23,6 +23,8 @@ interface Props {
   onRestart: () => void;
   measureNumber: string;
   totalMeasures: number;
+  /** 2 when playing a repeated section the second time, etc. */
+  pass?: number;
 }
 
 const HANDS: { key: HandMode; label: string }[] = [
@@ -48,7 +50,7 @@ export function PracticeControls(p: Props) {
           <Chip key={h.key} label={h.label} active={p.handMode === h.key} onPress={() => p.onHandMode(h.key)} />
         ))}
       </View>
-      <Text style={styles.measure}>m. {p.measureNumber}/{p.totalMeasures}</Text>
+      <Text style={styles.measure}>m. {p.measureNumber}/{p.totalMeasures}{p.pass && p.pass > 1 ? ` ·${p.pass}×` : ''}</Text>
       <View style={styles.group}>
         <Chip label={loopLabel} active={!!p.loop || p.loopSel.picking} onPress={p.onStartLoopPick} />
         {p.loop || p.loopSel.picking ? <Chip label="✕" onPress={p.onClearLoop} /> : null}

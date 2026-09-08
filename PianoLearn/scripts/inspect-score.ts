@@ -24,3 +24,6 @@ console.log(`timeSigs=${sigs.join(',')} measureDurations=${durs.join(',')} tempo
 console.log(`first events: ${events.slice(0, 6).map((e) => e.notes.map((n) => n.pitch).join('+')).join(' | ')}`);
 const lo = Math.min(...score.notes.map((n) => n.midi)), hi = Math.max(...score.notes.map((n) => n.midi));
 console.log(`midi range ${lo}-${hi}`);
+const marked = score.measures.filter((m) => m.repeats).map((m) => `m${m.index}:${Object.keys(m.repeats!).join('/')}`);
+console.log(`repeat marks: ${marked.length ? marked.join(' ') : 'none'}`);
+console.log(`performed order: ${score.playbackOrder.length} measures (${score.measures.length} written); starts ${score.playbackOrder.slice(0, 40).join(' ')}${score.playbackOrder.length > 40 ? ' …' : ''}`);

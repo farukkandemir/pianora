@@ -163,6 +163,7 @@ function Practice({ data }: { data: Loaded }) {
         onRestart={session.restart}
         measureNumber={cur ? score.measures[cur.measureIndex].number : ''}
         totalMeasures={score.measures.length}
+        pass={cur?.pass}
       />
       <PianoKeyboard
         range={keyRange}
