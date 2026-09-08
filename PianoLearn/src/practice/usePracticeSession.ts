@@ -2,8 +2,12 @@
  * Glues MIDI input to the Wait Mode engine and exposes React state for the
  * practice screen. Engine stays pure; this hook owns subscriptions and
  * re-renders.
+ *
+ * Invariant: `events` and `state` are always published together, so no render
+ * can see a step index from one event list applied to another. That is what
+ * keeps the sheet cursor from flickering when hand mode or loop changes.
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { buildEvents, type PracticeEvent } from '@/engine/events';
 import type { HandMode, MeasureRange, Score } from '@/engine/model';
@@ -26,39 +30,56 @@ export interface PracticeSession {
   jumpToMeasure: (measureIndex: number) => void;
 }
 
+interface Snapshot {
+  session: WaitModeSession;
+  events: PracticeEvent[];
+  state: WaitModeState;
+  lastResult: NoteOnResult | null;
+}
+
+function createSnapshot(score: Score, settings: PracticeSettings, startMeasure: number): Snapshot {
+  const events = buildEvents(score, settings.handMode);
+  const session = new WaitModeSession(events, { loop: settings.loop ?? undefined });
+  if (!settings.loop) session.jumpToMeasure(startMeasure);
+  return { session, events, state: session.state, lastResult: null };
+}
+
 export function usePracticeSession(score: Score, settings: PracticeSettings, startMeasure: number): PracticeSession {
-  const events = useMemo(() => buildEvents(score, settings.handMode), [score, settings.handMode]);
+  const [snap, setSnap] = useState<Snapshot>(() => createSnapshot(score, settings, startMeasure));
+  // The live engine instance. Mutated only outside React state updaters, so
+  // updaters stay pure (React may invoke them more than once in development).
+  const sessionRef = useRef(snap.session);
 
-  const sessionRef = useRef<WaitModeSession | null>(null);
-  const [state, setState] = useState<WaitModeState>(() => emptyState());
-  const [lastResult, setLastResult] = useState<NoteOnResult | null>(null);
+  // Rebuild synchronously during render when the inputs change, keeping the
+  // user's place by measure. Publishing events+state in one setState call is
+  // what prevents a mismatched frame.
+  const inputs = useRef({ score, handMode: settings.handMode, loop: settings.loop });
+  if (
+    inputs.current.score !== score ||
+    inputs.current.handMode !== settings.handMode ||
+    inputs.current.loop !== settings.loop
+  ) {
+    inputs.current = { score, handMode: settings.handMode, loop: settings.loop };
+    const keepMeasure = sessionRef.current.current?.measureIndex ?? startMeasure;
+    const next = createSnapshot(score, settings, keepMeasure);
+    sessionRef.current = next.session;
+    setSnap(next);
+  }
 
-  // (Re)create the session when the event list or loop changes, keeping the
-  // user's position by measure rather than by event index.
-  useEffect(() => {
-    const prev = sessionRef.current?.current?.measureIndex ?? startMeasure;
-    const s = new WaitModeSession(events, { loop: settings.loop ?? undefined });
-    if (!settings.loop) s.jumpToMeasure(prev);
-    sessionRef.current = s;
-    setState(s.state);
-    setLastResult(null);
-    // startMeasure only seeds the very first session.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [events, settings.loop]);
+  /** Publish the engine's current state for the session it belongs to. */
+  const publish = useCallback((session: WaitModeSession, lastResult: NoteOnResult | null) => {
+    setSnap((prev) => (prev.session === session ? { ...prev, state: session.state, lastResult } : prev));
+  }, []);
 
   const noteOn = useCallback((midi: number) => {
     const s = sessionRef.current;
-    if (!s) return;
-    const r = s.noteOn(midi);
-    setLastResult(r);
-    setState(s.state);
-  }, []);
+    publish(s, s.noteOn(midi));
+  }, [publish]);
 
   const noteOff = useCallback((midi: number) => {
     const s = sessionRef.current;
-    if (!s) return;
     s.noteOff(midi);
-    setState(s.state);
+    setSnap((prev) => (prev.session === s ? { ...prev, state: s.state } : prev));
   }, []);
 
   useEffect(() => {
@@ -70,29 +91,25 @@ export function usePracticeSession(score: Score, settings: PracticeSettings, sta
   }, [noteOn, noteOff]);
 
   const restart = useCallback(() => {
-    sessionRef.current?.restart();
-    if (sessionRef.current) setState(sessionRef.current.state);
-    setLastResult(null);
-  }, []);
+    const s = sessionRef.current;
+    s.restart();
+    publish(s, null);
+  }, [publish]);
 
   const jumpToMeasure = useCallback((measureIndex: number) => {
-    sessionRef.current?.jumpToMeasure(measureIndex);
-    if (sessionRef.current) setState(sessionRef.current.state);
-    setLastResult(null);
-  }, []);
+    const s = sessionRef.current;
+    s.jumpToMeasure(measureIndex);
+    publish(s, null);
+  }, [publish]);
 
   return {
-    events,
-    current: events[state.eventIndex],
-    state,
-    lastResult,
+    events: snap.events,
+    current: snap.events[snap.state.eventIndex],
+    state: snap.state,
+    lastResult: snap.lastResult,
     noteOn,
     noteOff,
     restart,
     jumpToMeasure,
   };
-}
-
-function emptyState(): WaitModeState {
-  return { eventIndex: 0, remaining: [], satisfied: [], wrongHeld: [], held: [], finished: false };
 }
