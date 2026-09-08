@@ -1,6 +1,4 @@
-import { strToU8, zipSync } from 'fflate';
-
-import { parseMusicXml, parseMxl, MusicXmlError } from '../musicxml/parse';
+import { parseMusicXml, MusicXmlError } from '../musicxml/parse';
 import { totalBeats } from '../model';
 import { PIANO_XML, TWO_PART_XML } from '../testdata/fixtures';
 
@@ -73,23 +71,5 @@ describe('parseMusicXml', () => {
 
   it('rejects non-MusicXML', () => {
     expect(() => parseMusicXml('<html></html>')).toThrow(MusicXmlError);
-  });
-});
-
-describe('parseMxl', () => {
-  it('reads the rootfile from META-INF/container.xml', () => {
-    const container = `<?xml version="1.0"?><container><rootfiles><rootfile full-path="score.musicxml"/></rootfiles></container>`;
-    const zip = zipSync({
-      'META-INF/container.xml': strToU8(container),
-      'score.musicxml': strToU8(PIANO_XML),
-    });
-    const score = parseMxl(zip);
-    expect(score.title).toBe('Test Piece');
-    expect(score.notes.length).toBeGreaterThan(0);
-  });
-
-  it('falls back to any xml file when container is missing', () => {
-    const zip = zipSync({ 'song.xml': strToU8(TWO_PART_XML) });
-    expect(parseMxl(zip).title).toBe('Two Parts');
   });
 });

@@ -1,12 +1,11 @@
 /**
  * MusicXML (score-partwise) -> Score.
  *
+ * Plain XML only; see load.ts for .mxl archives.
  * Supported: notes, chords, rests, ties, backup/forward, divisions changes,
  * time signatures, tempo (sound@tempo and metronome), multiple parts,
  * multiple staves per part. Grace notes and unpitched notes are skipped.
  */
-import { unzipSync, strFromU8 } from 'fflate';
-
 import {
   Hand,
   Measure,
@@ -81,27 +80,6 @@ export function parseMusicXml(xml: string): Score {
 
   const rawParts = parts.map(parsePart);
   return assemble(rawParts, title, composer);
-}
-
-/** Parse a compressed .mxl archive. */
-export function parseMxl(bytes: Uint8Array): Score {
-  const files = unzipSync(bytes);
-  let rootFile: string | undefined;
-
-  const container = files['META-INF/container.xml'];
-  if (container) {
-    const c = findRoot(parseXml(strFromU8(container)), 'container');
-    const rootfiles = c ? child(c, 'rootfiles') : undefined;
-    const first = rootfiles ? child(rootfiles, 'rootfile') : undefined;
-    rootFile = first ? attrsOf(first)['full-path'] : undefined;
-  }
-  if (!rootFile || !files[rootFile]) {
-    rootFile = Object.keys(files).find(
-      (n) => !n.startsWith('META-INF/') && /\.(musicxml|xml)$/i.test(n),
-    );
-  }
-  if (!rootFile) throw new MusicXmlError('MXL archive contains no MusicXML file');
-  return parseMusicXml(strFromU8(files[rootFile]));
 }
 
 // ---------------------------------------------------------------------------

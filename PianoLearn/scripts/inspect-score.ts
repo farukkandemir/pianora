@@ -3,12 +3,12 @@
 import { readFileSync } from 'node:fs';
 
 import { buildEvents } from '../src/engine/events';
-import { parseMusicXml, parseMxl } from '../src/engine/musicxml/parse';
+import { loadScore } from '../src/engine/musicxml/load';
 import { totalBeats } from '../src/engine/model';
 
 const path = process.argv[2];
 const bytes = readFileSync(path);
-const score = path.endsWith('.mxl') ? parseMxl(new Uint8Array(bytes)) : parseMusicXml(bytes.toString('utf8'));
+const { score } = loadScore(new Uint8Array(bytes));
 
 const hands = score.notes.reduce<Record<string, number>>((acc, n) => ((acc[n.hand] = (acc[n.hand] ?? 0) + 1), acc), {});
 const events = buildEvents(score, 'both');
