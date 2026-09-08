@@ -2,7 +2,7 @@ import { strToU8, zipSync } from 'fflate';
 
 import { parseMusicXml, parseMxl, MusicXmlError } from '../musicxml/parse';
 import { totalBeats } from '../model';
-import { PIANO_XML, TWO_PART_XML } from './fixtures';
+import { PIANO_XML, TWO_PART_XML } from '../testdata/fixtures';
 
 describe('parseMusicXml', () => {
   const score = parseMusicXml(PIANO_XML);

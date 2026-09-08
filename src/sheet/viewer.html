@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<style>
+  html, body { margin: 0; padding: 0; background: #fff; -webkit-user-select: none; user-select: none; overflow-x: hidden; }
+  #sheet { padding: 8px 4px 120px 4px; }
+  #err { color: #b00020; font: 14px -apple-system, sans-serif; padding: 12px; white-space: pre-wrap; }
+  .loop-hl { fill: rgba(255, 200, 0, 0.18); }
+</style>
+<!--OSMD-->
+</head>
+<body>
+<div id="sheet"></div>
+<div id="err"></div>
+<script>
+(function () {
+  var post = function (msg) {
+    if (window.ReactNativeWebView) window.ReactNativeWebView.postMessage(JSON.stringify(msg));
+  };
+  var container = document.getElementById('sheet');
+  var errEl = document.getElementById('err');
+  var osmd = null;
+  var loaded = false;
+  var unitPx = 10; // OSMD units -> px at zoom 1
+
+  function fail(e) {
+    var msg = (e && e.message) ? e.message : String(e);
+    errEl.textContent = msg;
+    post({ type: 'error', message: msg });
+  }
+
+  function ensure() {
+    if (osmd) return osmd;
+    osmd = new opensheetmusicdisplay.OpenSheetMusicDisplay(container, {
+      autoResize: false,
+      backend: 'svg',
+      drawTitle: false,
+      drawSubtitle: false,
+      drawComposer: false,
+      drawLyricist: false,
+      drawPartNames: false,
+      drawMeasureNumbers: true,
+      followCursor: false,
+      renderSingleHorizontalStaffline: false,
+      cursorsOptions: [{ type: 0, color: '#2f80ed', alpha: 0.35, follow: false }]
+    });
+    return osmd;
+  }
+
+  function measureBoxes() {
+    // One box per measure (union across staves), in CSS px relative to the SVG.
+    var out = [];
+    if (!osmd || !osmd.GraphicSheet) return out;
+    var list = osmd.GraphicSheet.MeasureList;
+    var z = osmd.Zoom || 1;
+    for (var i = 0; i < list.length; i++) {
+      var staves = list[i];
+      var box = null;
+      for (var s = 0; s < staves.length; s++) {
+        var gm = staves[s];
+        if (!gm || !gm.PositionAndShape) continue;
+        var p = gm.PositionAndShape.AbsolutePosition;
+        var sz = gm.PositionAndShape.Size;
+        var b = { x: p.x * unitPx * z, y: p.y * unitPx * z, w: sz.width * unitPx * z, h: sz.height * unitPx * z };
+        if (!box) box = b;
+        else {
+          var x2 = Math.max(box.x + box.w, b.x + b.w), y2 = Math.max(box.y + box.h, b.y + b.h);
+          box.x = Math.min(box.x, b.x); box.y = Math.min(box.y, b.y);
+          box.w = x2 - box.x; box.h = y2 - box.y;
+        }
+      }
+      out.push(box);
+    }
+    return out;
+  }
+
+  function cursorRect() {
+    var el = osmd && osmd.cursor && osmd.cursor.cursorElement;
+    if (!el) return null;
+    return { top: el.offsetTop, left: el.offsetLeft, height: el.offsetHeight };
+  }
+
+  function scrollCursorIntoView() {
+    var r = cursorRect();
+    if (!r) return;
+    var vh = window.innerHeight;
+    var top = window.scrollY;
+    if (r.top < top + 40 || r.top + r.height > top + vh - 160) {
+      window.scrollTo({ top: Math.max(0, r.top - vh * 0.3), behavior: 'smooth' });
+    }
+  }
+
+  window.api = {
+    load: function (xml, zoom) {
+      loaded = false;
+      errEl.textContent = '';
+      try {
+        var o = ensure();
+        o.Zoom = zoom || 0.6;
+        o.load(xml).then(function () {
+          o.render();
+          o.cursor.show();
+          o.cursor.reset();
+          loaded = true;
+          post({ type: 'loaded', measures: o.GraphicSheet.MeasureList.length });
+        }).catch(fail);
+      } catch (e) { fail(e); }
+    },
+
+    setZoom: function (zoom) {
+      if (!osmd || !loaded) return;
+      osmd.Zoom = zoom;
+      osmd.render();
+      osmd.cursor.show();
+    },
+
+    // Move the cursor to a measure index (0-based) and quarter-note offset within it.
+    setCursor: function (measureIndex, offsetQuarters) {
+      if (!osmd || !loaded) return;
+      var c = osmd.cursor;
+      c.reset();
+      var it = c.iterator;
+      var guard = 0;
+      while (!it.EndReached && guard++ < 100000) {
+        var mi = it.CurrentMeasureIndex;
+        if (mi > measureIndex) break;
+        if (mi === measureIndex) {
+          var m = it.CurrentMeasure;
+          var off = (it.currentTimeStamp.RealValue - m.AbsoluteTimestamp.RealValue) * 4;
+          if (off + 1e-6 >= offsetQuarters) break;
+        }
+        c.next();
+      }
+      c.show();
+      scrollCursorIntoView();
+      post({ type: 'cursor', measureIndex: it.CurrentMeasureIndex, rect: cursorRect() });
+    },
+
+    next: function () {
+      if (!osmd || !loaded) return;
+      osmd.cursor.next();
+      osmd.cursor.show();
+      scrollCursorIntoView();
+      post({ type: 'cursor', measureIndex: osmd.cursor.iterator.CurrentMeasureIndex, rect: cursorRect() });
+    },
+
+    highlightRange: function (start, end) {
+      if (!osmd || !loaded) return;
+      var svg = container.querySelector('svg');
+      if (!svg) return;
+      var old = svg.querySelectorAll('.loop-hl');
+      for (var i = 0; i < old.length; i++) old[i].remove();
+      if (start == null || end == null) return;
+      var boxes = measureBoxes();
+      for (var m = start; m <= end && m < boxes.length; m++) {
+        var b = boxes[m];
+        if (!b) continue;
+        var r = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        r.setAttribute('class', 'loop-hl');
+        r.setAttribute('x', b.x); r.setAttribute('y', b.y - 6);
+        r.setAttribute('width', b.w); r.setAttribute('height', b.h + 12);
+        svg.insertBefore(r, svg.firstChild);
+      }
+    }
+  };
+
+  container.addEventListener('click', function (ev) {
+    if (!osmd || !loaded) return;
+    var svg = container.querySelector('svg');
+    if (!svg) return;
+    var sr = svg.getBoundingClientRect();
+    var x = ev.clientX - sr.left, y = ev.clientY - sr.top;
+    var boxes = measureBoxes();
+    for (var i = 0; i < boxes.length; i++) {
+      var b = boxes[i];
+      if (!b) continue;
+      if (x >= b.x && x <= b.x + b.w && y >= b.y - 10 && y <= b.y + b.h + 10) {
+        post({ type: 'measureTap', measureIndex: i });
+        return;
+      }
+    }
+  });
+
+  post({ type: 'ready' });
+})();
+</script>
+</body>
+</html>

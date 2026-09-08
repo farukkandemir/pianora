@@ -1,7 +1,7 @@
 import { buildEvents } from '../events';
 import { parseMusicXml } from '../musicxml/parse';
 import { WaitModeSession } from '../waitMode';
-import { PIANO_XML } from './fixtures';
+import { PIANO_XML } from '../testdata/fixtures';
 
 const score = parseMusicXml(PIANO_XML);
 const C3 = 48, G2 = 43, C4 = 60, D4 = 62, E4 = 64, F4 = 65, G4 = 67;
