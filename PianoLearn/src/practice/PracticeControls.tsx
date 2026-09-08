@@ -11,6 +11,8 @@ export interface LoopSelection {
 }
 
 interface Props {
+  insetLeft: number;
+  insetRight: number;
   handMode: HandMode;
   onHandMode: (m: HandMode) => void;
   loop: MeasureRange | null;
@@ -38,7 +40,7 @@ export function PracticeControls(p: Props) {
     : p.loop ? `Loop ${p.loop.start + 1}–${p.loop.end + 1}` : 'Loop';
 
   return (
-    <View style={styles.bar}>
+    <View style={[styles.bar, { paddingLeft: 8 + p.insetLeft, paddingRight: 8 + p.insetRight }]}>
       <View style={styles.segment}>
         {HANDS.map((h) => (
           <Pressable key={h.key} onPress={() => p.onHandMode(h.key)} style={[styles.segItem, p.handMode === h.key && styles.segItemActive]}>
@@ -70,7 +72,7 @@ function Chip({ label, active, onPress }: { label: string; active?: boolean; onP
 
 const styles = StyleSheet.create({
   bar: {
-    height: BOTTOM_BAR_HEIGHT, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 8,
+    height: BOTTOM_BAR_HEIGHT, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     backgroundColor: '#f7f7f7', borderTopWidth: StyleSheet.hairlineWidth, borderColor: '#ddd',
   },
   segment: { flexDirection: 'row', backgroundColor: '#e4e4e4', borderRadius: 8, padding: 2 },

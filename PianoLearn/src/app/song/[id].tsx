@@ -145,8 +145,10 @@ function Practice({ data }: { data: Loaded }) {
   const statusTone = session.state.finished ? 'done' : session.lastResult?.verdict === 'wrong' ? 'wrong' : 'normal';
 
   return (
-    <View style={[styles.container, { paddingLeft: insets.left, paddingRight: insets.right, paddingBottom: insets.bottom }]}>
+    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
       <PracticeTopBar
+        insetLeft={insets.left}
+        insetRight={insets.right}
         title={data.song.title}
         onBack={() => router.back()}
         status={statusText}
@@ -157,6 +159,8 @@ function Practice({ data }: { data: Loaded }) {
         <SheetView ref={sheet} onMessage={onMessage} />
       </View>
       <PracticeControls
+        insetLeft={insets.left}
+        insetRight={insets.right}
         handMode={handMode}
         onHandMode={setHandMode}
         loop={loop}

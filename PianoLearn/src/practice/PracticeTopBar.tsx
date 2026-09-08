@@ -4,6 +4,9 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 interface Props {
+  /** Safe-area insets: the bar spans the full width, its content stays clear of the island. */
+  insetLeft: number;
+  insetRight: number;
   title: string;
   onBack: () => void;
   status: string;
@@ -13,9 +16,9 @@ interface Props {
 
 export const TOP_BAR_HEIGHT = 34;
 
-export function PracticeTopBar({ title, onBack, status, statusTone, midiName }: Props) {
+export function PracticeTopBar({ insetLeft, insetRight, title, onBack, status, statusTone, midiName }: Props) {
   return (
-    <View style={styles.bar}>
+    <View style={[styles.bar, { paddingLeft: 8 + insetLeft, paddingRight: 8 + insetRight }]}>
       <Pressable onPress={onBack} hitSlop={10} style={styles.back}>
         <Text style={styles.backText}>‹</Text>
       </Pressable>
@@ -38,7 +41,7 @@ export function PracticeTopBar({ title, onBack, status, statusTone, midiName }: 
 
 const styles = StyleSheet.create({
   bar: {
-    height: TOP_BAR_HEIGHT, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 8,
+    height: TOP_BAR_HEIGHT, flexDirection: 'row', alignItems: 'center', gap: 10,
     backgroundColor: '#f7f7f7', borderBottomWidth: StyleSheet.hairlineWidth, borderColor: '#ddd',
   },
   back: { paddingHorizontal: 4 },
