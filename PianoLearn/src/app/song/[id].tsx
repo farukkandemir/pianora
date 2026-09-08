@@ -1,30 +1,31 @@
 /**
- * Song screen. For now: load the file, render the sheet, step through
- * events. Becomes the practice screen (Wait Mode + keyboard) next.
+ * Practice screen: sheet + on-screen keyboard + Wait Mode driven by MIDI.
  */
 import { Stack, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 
-import { getSong, openSong, type SongRecord } from '@/data/songs';
-import { buildEvents, type PracticeEvent } from '@/engine/events';
-import type { Score } from '@/engine/model';
+import { PianoKeyboard, noteLabel } from '@/components/PianoKeyboard';
+import { getProgress, getSong, openSong, saveProgress, type SongRecord } from '@/data/songs';
+import type { HandMode, MeasureRange, Score } from '@/engine/model';
+import { PracticeControls, type LoopSelection } from '@/practice/PracticeControls';
+import { useMidiStatus } from '@/practice/useMidiStatus';
+import { usePracticeSession } from '@/practice/usePracticeSession';
 import { SheetView, type SheetMessage, type SheetViewHandle } from '@/sheet/SheetView';
 
 interface Loaded {
   song: SongRecord;
   xml: string;
   score: Score;
-  events: PracticeEvent[];
+  startMeasure: number;
+  handMode: HandMode;
+  loop: MeasureRange | null;
 }
 
-export default function SongScreen() {
+export default function PracticeScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const sheet = useRef<SheetViewHandle>(null);
   const [data, setData] = useState<Loaded | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [idx, setIdx] = useState(0);
-  const [sheetReady, setSheetReady] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -32,8 +33,12 @@ export default function SongScreen() {
       try {
         const song = await getSong(id);
         if (!song) throw new Error('Song not found');
-        const { xml, score } = await openSong(song);
-        if (!cancelled) setData({ song, xml, score, events: buildEvents(score, 'both') });
+        const [{ xml, score }, progress] = await Promise.all([openSong(song), getProgress(id)]);
+        if (cancelled) return;
+        const loop = progress?.loopStart != null && progress.loopEnd != null
+          ? { start: progress.loopStart, end: progress.loopEnd }
+          : null;
+        setData({ song, xml, score, startMeasure: progress?.lastMeasure ?? 0, handMode: progress?.handMode ?? 'both', loop });
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : String(e));
       }
@@ -41,68 +46,137 @@ export default function SongScreen() {
     return () => { cancelled = true; };
   }, [id]);
 
-  // Load into the sheet once both the file and the WebView are ready.
-  useEffect(() => {
-    if (data && sheetReady) sheet.current?.load(data.xml, 0.7);
-  }, [data, sheetReady]);
-
-  const showEvent = useCallback((i: number) => {
-    if (!data) return;
-    const e = data.events[i];
-    if (!e) return;
-    const m = data.score.measures[e.measureIndex];
-    sheet.current?.setCursor(e.measureIndex, e.startBeat - m.startBeat);
-    setIdx(i);
-  }, [data]);
-
-  const onMessage = useCallback((msg: SheetMessage) => {
-    switch (msg.type) {
-      case 'ready': setSheetReady(true); break;
-      case 'loaded': showEvent(0); break;
-      case 'measureTap': {
-        const i = data?.events.findIndex((e) => e.measureIndex >= msg.measureIndex) ?? -1;
-        if (i >= 0) showEvent(i);
-        break;
-      }
-      case 'error': setError(msg.message); break;
-      default: break;
-    }
-  }, [data, showEvent]);
-
-  const cur = data?.events[idx];
   return (
     <View style={styles.container}>
-      <Stack.Screen options={{ title: data?.song.title ?? 'Song' }} />
-      <SheetView ref={sheet} onMessage={onMessage} />
-      <View style={styles.bar}>
-        {error ? <Text style={styles.error}>{error}</Text> : null}
-        <Text style={styles.status}>
-          {data ? `Event ${idx + 1}/${data.events.length}: ${cur?.notes.map((n) => n.pitch).join(' ') ?? ''}` : 'Loading…'}
-        </Text>
-        <View style={styles.row}>
-          <Btn label="Prev" onPress={() => showEvent(Math.max(0, idx - 1))} />
-          <Btn label="Next" onPress={() => showEvent(Math.min((data?.events.length ?? 1) - 1, idx + 1))} />
-          <Btn label="Restart" onPress={() => showEvent(0)} />
-        </View>
-      </View>
+      <Stack.Screen options={{ title: data?.song.title ?? 'Song', headerShown: true }} />
+      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {data ? <Practice data={data} /> : <Text style={styles.loading}>Loading…</Text>}
     </View>
   );
 }
 
-function Btn({ label, onPress }: { label: string; onPress: () => void }) {
+function Practice({ data }: { data: Loaded }) {
+  const sheet = useRef<SheetViewHandle>(null);
+  const [sheetReady, setSheetReady] = useState(false);
+  const [handMode, setHandMode] = useState<HandMode>(data.handMode);
+  const [loop, setLoop] = useState<MeasureRange | null>(data.loop);
+  const [loopSel, setLoopSel] = useState<LoopSelection>({ picking: false, start: null });
+  const midiSources = useMidiStatus();
+
+  const session = usePracticeSession(data.score, { handMode, loop }, data.startMeasure);
+  const { score } = data;
+
+  const keyRange = useMemo(() => {
+    const midis = score.notes.map((n) => n.midi);
+    return { low: Math.min(...midis), high: Math.max(...midis) };
+  }, [score]);
+
+  // Sheet lifecycle
+  useEffect(() => {
+    if (sheetReady) sheet.current?.load(data.xml, 0.6);
+  }, [data.xml, sheetReady]);
+
+  const [sheetLoaded, setSheetLoaded] = useState(false);
+  useEffect(() => {
+    if (!sheetLoaded) return;
+    sheet.current?.highlightRange(loop?.start ?? null, loop?.end ?? null);
+  }, [loop, sheetLoaded]);
+
+  // Move the cursor whenever the current event changes.
+  const cur = session.current;
+  useEffect(() => {
+    if (!sheetLoaded || !cur) return;
+    const m = score.measures[cur.measureIndex];
+    sheet.current?.setCursor(cur.measureIndex, cur.startBeat - m.startBeat);
+  }, [cur, score, sheetLoaded]);
+
+  const onMeasureTap = useCallback((measureIndex: number) => {
+    if (loopSel.picking) {
+      if (loopSel.start === null) {
+        setLoopSel({ picking: true, start: measureIndex });
+      } else {
+        const a = Math.min(loopSel.start, measureIndex);
+        const b = Math.max(loopSel.start, measureIndex);
+        setLoop({ start: a, end: b });
+        setLoopSel({ picking: false, start: null });
+      }
+      return;
+    }
+    session.jumpToMeasure(measureIndex);
+  }, [loopSel, session]);
+
+  const onMessage = useCallback((msg: SheetMessage) => {
+    switch (msg.type) {
+      case 'ready': setSheetReady(true); break;
+      case 'loaded': setSheetLoaded(true); break;
+      case 'measureTap': onMeasureTap(msg.measureIndex); break;
+      default: break;
+    }
+  }, [onMeasureTap]);
+
+  // Persist progress on unmount and whenever the measure/settings change.
+  const latest = useRef({ measure: cur?.measureIndex ?? 0, handMode, loop });
+  latest.current = { measure: cur?.measureIndex ?? latest.current.measure, handMode, loop };
+  useEffect(() => {
+    const save = () => saveProgress({
+      songId: data.song.id,
+      lastMeasure: latest.current.measure,
+      tempoPercent: 100,
+      handMode: latest.current.handMode,
+      loopStart: latest.current.loop?.start ?? null,
+      loopEnd: latest.current.loop?.end ?? null,
+    }).catch(() => {});
+    save();
+    return () => { save(); };
+  }, [data.song.id, cur?.measureIndex, handMode, loop]);
+
+  const statusText = session.state.finished
+    ? 'Finished! Tap restart to play again.'
+    : cur
+      ? `Play: ${session.state.remaining.map(noteLabel).join(' + ')}`
+      : 'No notes for this hand selection.';
+
   return (
-    <Pressable onPress={onPress} style={styles.btn}>
-      <Text style={styles.btnText}>{label}</Text>
-    </Pressable>
+    <View style={styles.container}>
+      <View style={styles.sheet}>
+        <SheetView ref={sheet} onMessage={onMessage} />
+        <View style={styles.overlay} pointerEvents="none">
+          <Text style={[styles.status, session.lastResult?.verdict === 'wrong' && styles.statusWrong]}>{statusText}</Text>
+          <Text style={styles.midi}>{midiSources.length ? `MIDI: ${midiSources[0].name}` : 'No MIDI keyboard'}</Text>
+        </View>
+      </View>
+      <PracticeControls
+        handMode={handMode}
+        onHandMode={setHandMode}
+        loop={loop}
+        loopSel={loopSel}
+        onStartLoopPick={() => setLoopSel({ picking: true, start: null })}
+        onClearLoop={() => { setLoop(null); setLoopSel({ picking: false, start: null }); }}
+        onRestart={session.restart}
+        measureNumber={cur ? score.measures[cur.measureIndex].number : ''}
+        totalMeasures={score.measures.length}
+      />
+      <PianoKeyboard
+        range={keyRange}
+        expected={session.state.remaining}
+        satisfied={session.state.satisfied}
+        wrong={session.state.wrongHeld}
+        held={session.state.held}
+        onKeyDown={session.noteOn}
+        onKeyUp={session.noteOff}
+        height={96}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  bar: { padding: 12, gap: 6, borderTopWidth: StyleSheet.hairlineWidth, borderColor: '#ccc', backgroundColor: '#fafafa' },
-  status: { fontSize: 13, color: '#333' },
-  error: { color: '#b00020' },
-  row: { flexDirection: 'row', gap: 8, marginTop: 4 },
-  btn: { flex: 1, backgroundColor: '#2f80ed', paddingVertical: 10, borderRadius: 8, alignItems: 'center' },
-  btnText: { color: '#fff', fontWeight: '600' },
+  container: { flex: 1, backgroundColor: '#fff' },
+  sheet: { flex: 1 },
+  overlay: { position: 'absolute', top: 6, left: 10, right: 10, flexDirection: 'row', justifyContent: 'space-between' },
+  status: { fontSize: 14, fontWeight: '600', color: '#2f80ed', backgroundColor: 'rgba(255,255,255,0.85)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
+  statusWrong: { color: '#e5484d' },
+  midi: { fontSize: 12, color: '#777', backgroundColor: 'rgba(255,255,255,0.85)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
+  loading: { padding: 16, color: '#777' },
+  error: { padding: 16, color: '#b00020' },
 });
