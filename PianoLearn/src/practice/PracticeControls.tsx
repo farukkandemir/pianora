@@ -1,5 +1,6 @@
 /**
  * Control strip for the practice screen. Presentation only.
+ * Replaces the system header: back button + title live here to save height.
  */
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -11,6 +12,8 @@ export interface LoopSelection {
 }
 
 interface Props {
+  title: string;
+  onBack: () => void;
   handMode: HandMode;
   onHandMode: (m: HandMode) => void;
   loop: MeasureRange | null;
@@ -23,28 +26,33 @@ interface Props {
 }
 
 const HANDS: { key: HandMode; label: string }[] = [
-  { key: 'left', label: 'Left' },
+  { key: 'left', label: 'L' },
   { key: 'both', label: 'Both' },
-  { key: 'right', label: 'Right' },
+  { key: 'right', label: 'R' },
 ];
 
 export function PracticeControls(p: Props) {
   const loopLabel = p.loopSel.picking
-    ? p.loopSel.start === null ? 'Tap first measure…' : 'Tap last measure…'
+    ? p.loopSel.start === null ? 'Tap first…' : 'Tap last…'
     : p.loop ? `Loop ${p.loop.start + 1}–${p.loop.end + 1}` : 'Loop';
 
   return (
     <View style={styles.bar}>
+      <Pressable onPress={p.onBack} hitSlop={8} style={styles.back}>
+        <Text style={styles.backText}>‹</Text>
+      </Pressable>
+      <Text style={styles.title} numberOfLines={1}>{p.title}</Text>
+
       <View style={styles.group}>
         {HANDS.map((h) => (
           <Chip key={h.key} label={h.label} active={p.handMode === h.key} onPress={() => p.onHandMode(h.key)} />
         ))}
       </View>
-      <Text style={styles.measure}>m. {p.measureNumber} / {p.totalMeasures}</Text>
+      <Text style={styles.measure}>m. {p.measureNumber}/{p.totalMeasures}</Text>
       <View style={styles.group}>
         <Chip label={loopLabel} active={!!p.loop || p.loopSel.picking} onPress={p.onStartLoopPick} />
         {p.loop || p.loopSel.picking ? <Chip label="✕" onPress={p.onClearLoop} /> : null}
-        <Chip label="Restart" onPress={p.onRestart} />
+        <Chip label="↺" onPress={p.onRestart} />
       </View>
     </View>
   );
@@ -58,12 +66,20 @@ function Chip({ label, active, onPress }: { label: string; active?: boolean; onP
   );
 }
 
+const BAR_HEIGHT = 36;
+
 const styles = StyleSheet.create({
-  bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 10, paddingVertical: 6, backgroundColor: '#f2f2f2', borderTopWidth: StyleSheet.hairlineWidth, borderColor: '#ccc' },
-  group: { flexDirection: 'row', gap: 6 },
-  chip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, backgroundColor: '#e2e2e2' },
+  bar: {
+    height: BAR_HEIGHT, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 8,
+    backgroundColor: '#f2f2f2', borderTopWidth: StyleSheet.hairlineWidth, borderColor: '#ccc',
+  },
+  back: { paddingHorizontal: 4 },
+  backText: { fontSize: 26, lineHeight: 28, color: '#2f80ed', marginTop: -3 },
+  title: { flex: 1, fontSize: 13, fontWeight: '600', color: '#333' },
+  group: { flexDirection: 'row', gap: 4 },
+  chip: { paddingHorizontal: 10, height: 26, borderRadius: 13, backgroundColor: '#e2e2e2', justifyContent: 'center' },
   chipActive: { backgroundColor: '#2f80ed' },
-  chipText: { fontSize: 13, fontWeight: '600', color: '#333' },
+  chipText: { fontSize: 12, fontWeight: '600', color: '#333' },
   chipTextActive: { color: '#fff' },
-  measure: { fontSize: 13, color: '#555' },
+  measure: { fontSize: 12, color: '#555', fontVariant: ['tabular-nums'] },
 });

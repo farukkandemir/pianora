@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <style>
   html, body { margin: 0; padding: 0; background: #fff; -webkit-user-select: none; user-select: none; overflow-x: hidden; }
-  #sheet { padding: 8px 4px 120px 4px; }
+  #sheet { padding: 22px 4px 80px 4px; }
   #err { color: #b00020; font: 14px -apple-system, sans-serif; padding: 12px; white-space: pre-wrap; }
   .loop-hl { fill: rgba(255, 200, 0, 0.18); }
 </style>
@@ -50,6 +50,11 @@
       renderSingleHorizontalStaffline: false,
       cursorsOptions: [{ type: 0, color: '#2f80ed', alpha: 0.35, follow: false }]
     });
+    // Tight page margins: the phone screen is the page.
+    osmd.EngravingRules.PageTopMargin = 1;
+    osmd.EngravingRules.PageBottomMargin = 1;
+    osmd.EngravingRules.PageLeftMargin = 1;
+    osmd.EngravingRules.PageRightMargin = 1;
     return osmd;
   }
 

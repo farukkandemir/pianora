@@ -1,9 +1,10 @@
 /**
  * Practice screen: sheet + on-screen keyboard + Wait Mode driven by MIDI.
  */
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PianoKeyboard, noteLabel } from '@/components/PianoKeyboard';
 import { getProgress, getSong, openSong, saveProgress, type SongRecord } from '@/data/songs';
@@ -48,7 +49,7 @@ export default function PracticeScreen() {
 
   return (
     <View style={styles.container}>
-      <Stack.Screen options={{ title: data?.song.title ?? 'Song', headerShown: true }} />
+      <Stack.Screen options={{ headerShown: false }} />
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {data ? <Practice data={data} /> : <Text style={styles.loading}>Loading…</Text>}
     </View>
@@ -56,6 +57,8 @@ export default function PracticeScreen() {
 }
 
 function Practice({ data }: { data: Loaded }) {
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
   const sheet = useRef<SheetViewHandle>(null);
   const [sheetReady, setSheetReady] = useState(false);
   const [handMode, setHandMode] = useState<HandMode>(data.handMode);
@@ -137,15 +140,20 @@ function Practice({ data }: { data: Loaded }) {
       : 'No notes for this hand selection.';
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingLeft: insets.left, paddingRight: insets.right, paddingBottom: insets.bottom }]}>
       <View style={styles.sheet}>
         <SheetView ref={sheet} onMessage={onMessage} />
         <View style={styles.overlay} pointerEvents="none">
           <Text style={[styles.status, session.lastResult?.verdict === 'wrong' && styles.statusWrong]}>{statusText}</Text>
-          <Text style={styles.midi}>{midiSources.length ? `MIDI: ${midiSources[0].name}` : 'No MIDI keyboard'}</Text>
+          <View style={styles.midiPill}>
+            <View style={[styles.dot, { backgroundColor: midiSources.length ? '#30a46c' : '#e5484d' }]} />
+            <Text style={styles.midi}>{midiSources.length ? midiSources[0].name : 'No keyboard'}</Text>
+          </View>
         </View>
       </View>
       <PracticeControls
+        title={data.song.title}
+        onBack={() => router.back()}
         handMode={handMode}
         onHandMode={setHandMode}
         loop={loop}
@@ -164,7 +172,7 @@ function Practice({ data }: { data: Loaded }) {
         held={session.state.held}
         onKeyDown={session.noteOn}
         onKeyUp={session.noteOff}
-        height={96}
+        height={84}
       />
     </View>
   );
@@ -173,10 +181,12 @@ function Practice({ data }: { data: Loaded }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   sheet: { flex: 1 },
-  overlay: { position: 'absolute', top: 6, left: 10, right: 10, flexDirection: 'row', justifyContent: 'space-between' },
-  status: { fontSize: 14, fontWeight: '600', color: '#2f80ed', backgroundColor: 'rgba(255,255,255,0.85)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
+  overlay: { position: 'absolute', top: 4, left: 8, right: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  status: { fontSize: 13, fontWeight: '600', color: '#2f80ed', backgroundColor: 'rgba(255,255,255,0.9)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
   statusWrong: { color: '#e5484d' },
-  midi: { fontSize: 12, color: '#777', backgroundColor: 'rgba(255,255,255,0.85)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
+  midiPill: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(255,255,255,0.9)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
+  dot: { width: 7, height: 7, borderRadius: 4 },
+  midi: { fontSize: 11, color: '#666' },
   loading: { padding: 16, color: '#777' },
   error: { padding: 16, color: '#b00020' },
 });
