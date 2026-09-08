@@ -38,7 +38,8 @@
     "typecheck": "tsc --noEmit",
     "postinstall": "node scripts/build-sheet-html.mjs",
     "build:sheet": "node scripts/build-sheet-html.mjs",
-    "inspect": "tsx scripts/inspect-score.ts"
+    "inspect": "tsx scripts/inspect-score.ts",
+    "ios:device": "expo run:ios --device"
   },
   "private": true,
   "jest": {

@@ -12,7 +12,8 @@
       "bundleIdentifier": "com.farukkandemir.pianolearn",
       "infoPlist": {
         "NSBluetoothAlwaysUsageDescription": "PianoLearn uses Bluetooth to connect to your MIDI piano."
-      }
+      },
+      "appleTeamId": "KHAU274LWD"
     },
     "android": {
       "adaptiveIcon": {
