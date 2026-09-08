@@ -10,6 +10,7 @@ import { PianoKeyboard, noteLabel } from '@/components/PianoKeyboard';
 import { getProgress, getSong, openSong, saveProgress, type SongRecord } from '@/data/songs';
 import type { HandMode, MeasureRange, Score } from '@/engine/model';
 import { PracticeControls, type LoopSelection } from '@/practice/PracticeControls';
+import { PracticeTopBar } from '@/practice/PracticeTopBar';
 import { useMidiStatus } from '@/practice/useMidiStatus';
 import { usePracticeSession } from '@/practice/usePracticeSession';
 import { SheetView, type SheetMessage, type SheetViewHandle } from '@/sheet/SheetView';
@@ -137,26 +138,25 @@ function Practice({ data }: { data: Loaded }) {
   const expectedKeys = cur ? cur.notes.filter((n) => remainingSet.has(n.midi)).map((n) => ({ midi: n.midi, hand: n.hand })) : [];
 
   const statusText = session.state.finished
-    ? 'Finished! Tap restart to play again.'
+    ? 'Finished! Restart to play again.'
     : cur
       ? `Play: ${session.state.remaining.map(noteLabel).join(' + ')}`
       : 'No notes for this hand selection.';
+  const statusTone = session.state.finished ? 'done' : session.lastResult?.verdict === 'wrong' ? 'wrong' : 'normal';
 
   return (
     <View style={[styles.container, { paddingLeft: insets.left, paddingRight: insets.right, paddingBottom: insets.bottom }]}>
-      <View style={styles.sheet}>
-        <SheetView ref={sheet} onMessage={onMessage} />
-        <View style={styles.overlay} pointerEvents="none">
-          <Text style={[styles.status, session.lastResult?.verdict === 'wrong' && styles.statusWrong]}>{statusText}</Text>
-          <View style={styles.midiPill}>
-            <View style={[styles.dot, { backgroundColor: midiSources.length ? '#30a46c' : '#e5484d' }]} />
-            <Text style={styles.midi}>{midiSources.length ? midiSources[0].name : 'No keyboard'}</Text>
-          </View>
-        </View>
-      </View>
-      <PracticeControls
+      <PracticeTopBar
         title={data.song.title}
         onBack={() => router.back()}
+        status={statusText}
+        statusTone={statusTone}
+        midiName={midiSources[0]?.name ?? null}
+      />
+      <View style={styles.sheet}>
+        <SheetView ref={sheet} onMessage={onMessage} />
+      </View>
+      <PracticeControls
         handMode={handMode}
         onHandMode={setHandMode}
         loop={loop}
@@ -185,12 +185,6 @@ function Practice({ data }: { data: Loaded }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   sheet: { flex: 1 },
-  overlay: { position: 'absolute', top: 4, left: 8, right: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  status: { fontSize: 13, fontWeight: '600', color: '#2f80ed', backgroundColor: 'rgba(255,255,255,0.9)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
-  statusWrong: { color: '#e5484d' },
-  midiPill: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(255,255,255,0.9)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
-  dot: { width: 7, height: 7, borderRadius: 4 },
-  midi: { fontSize: 11, color: '#666' },
   loading: { padding: 16, color: '#777' },
   error: { padding: 16, color: '#b00020' },
 });

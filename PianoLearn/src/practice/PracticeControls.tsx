@@ -1,6 +1,5 @@
 /**
- * Control strip for the practice screen. Presentation only.
- * Replaces the system header: back button + title live here to save height.
+ * Bottom control bar for the practice screen. Presentation only.
  */
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -12,8 +11,6 @@ export interface LoopSelection {
 }
 
 interface Props {
-  title: string;
-  onBack: () => void;
   handMode: HandMode;
   onHandMode: (m: HandMode) => void;
   loop: MeasureRange | null;
@@ -28,33 +25,36 @@ interface Props {
 }
 
 const HANDS: { key: HandMode; label: string }[] = [
-  { key: 'left', label: 'L' },
+  { key: 'left', label: 'Left' },
   { key: 'both', label: 'Both' },
-  { key: 'right', label: 'R' },
+  { key: 'right', label: 'Right' },
 ];
+
+export const BOTTOM_BAR_HEIGHT = 40;
 
 export function PracticeControls(p: Props) {
   const loopLabel = p.loopSel.picking
-    ? p.loopSel.start === null ? 'Tap first…' : 'Tap last…'
+    ? p.loopSel.start === null ? 'Tap first measure' : 'Tap last measure'
     : p.loop ? `Loop ${p.loop.start + 1}–${p.loop.end + 1}` : 'Loop';
 
   return (
     <View style={styles.bar}>
-      <Pressable onPress={p.onBack} hitSlop={8} style={styles.back}>
-        <Text style={styles.backText}>‹</Text>
-      </Pressable>
-      <Text style={styles.title} numberOfLines={1}>{p.title}</Text>
-
-      <View style={styles.group}>
+      <View style={styles.segment}>
         {HANDS.map((h) => (
-          <Chip key={h.key} label={h.label} active={p.handMode === h.key} onPress={() => p.onHandMode(h.key)} />
+          <Pressable key={h.key} onPress={() => p.onHandMode(h.key)} style={[styles.segItem, p.handMode === h.key && styles.segItemActive]}>
+            <Text style={[styles.segText, p.handMode === h.key && styles.segTextActive]}>{h.label}</Text>
+          </Pressable>
         ))}
       </View>
-      <Text style={styles.measure}>m. {p.measureNumber}/{p.totalMeasures}{p.pass && p.pass > 1 ? ` ·${p.pass}×` : ''}</Text>
+
+      <Text style={styles.measure}>
+        m. {p.measureNumber}/{p.totalMeasures}{p.pass && p.pass > 1 ? `  ·${p.pass}×` : ''}
+      </Text>
+
       <View style={styles.group}>
         <Chip label={loopLabel} active={!!p.loop || p.loopSel.picking} onPress={p.onStartLoopPick} />
         {p.loop || p.loopSel.picking ? <Chip label="✕" onPress={p.onClearLoop} /> : null}
-        <Chip label="↺" onPress={p.onRestart} />
+        <Chip label="↺ Restart" onPress={p.onRestart} />
       </View>
     </View>
   );
@@ -68,20 +68,20 @@ function Chip({ label, active, onPress }: { label: string; active?: boolean; onP
   );
 }
 
-const BAR_HEIGHT = 36;
-
 const styles = StyleSheet.create({
   bar: {
-    height: BAR_HEIGHT, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 8,
-    backgroundColor: '#f2f2f2', borderTopWidth: StyleSheet.hairlineWidth, borderColor: '#ccc',
+    height: BOTTOM_BAR_HEIGHT, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 8,
+    backgroundColor: '#f7f7f7', borderTopWidth: StyleSheet.hairlineWidth, borderColor: '#ddd',
   },
-  back: { paddingHorizontal: 4 },
-  backText: { fontSize: 26, lineHeight: 28, color: '#2f80ed', marginTop: -3 },
-  title: { flex: 1, fontSize: 13, fontWeight: '600', color: '#333' },
-  group: { flexDirection: 'row', gap: 4 },
-  chip: { paddingHorizontal: 10, height: 26, borderRadius: 13, backgroundColor: '#e2e2e2', justifyContent: 'center' },
+  segment: { flexDirection: 'row', backgroundColor: '#e4e4e4', borderRadius: 8, padding: 2 },
+  segItem: { paddingHorizontal: 12, height: 26, borderRadius: 6, justifyContent: 'center' },
+  segItemActive: { backgroundColor: '#fff', shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 2, shadowOffset: { width: 0, height: 1 } },
+  segText: { fontSize: 13, fontWeight: '600', color: '#555' },
+  segTextActive: { color: '#111' },
+  measure: { fontSize: 13, color: '#444', fontVariant: ['tabular-nums'] },
+  group: { flexDirection: 'row', gap: 6 },
+  chip: { paddingHorizontal: 12, height: 28, borderRadius: 14, backgroundColor: '#e4e4e4', justifyContent: 'center' },
   chipActive: { backgroundColor: '#2f80ed' },
-  chipText: { fontSize: 12, fontWeight: '600', color: '#333' },
+  chipText: { fontSize: 13, fontWeight: '600', color: '#333' },
   chipTextActive: { color: '#fff' },
-  measure: { fontSize: 12, color: '#555', fontVariant: ['tabular-nums'] },
 });
