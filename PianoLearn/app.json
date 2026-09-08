@@ -9,7 +9,10 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon",
-      "bundleIdentifier": "com.farukkandemir.pianolearn"
+      "bundleIdentifier": "com.farukkandemir.pianolearn",
+      "infoPlist": {
+        "NSBluetoothAlwaysUsageDescription": "PianoLearn uses Bluetooth to connect to your MIDI piano."
+      }
     },
     "android": {
       "adaptiveIcon": {

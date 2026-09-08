@@ -7,6 +7,7 @@ export default function LibraryScreen() {
       <Text style={styles.title}>PianoLearn</Text>
       <Text>Song library coming soon.</Text>
       <Link href="/sheet-spike" style={styles.link}>Open sheet rendering spike</Link>
+      <Link href="/midi-setup" style={styles.link}>MIDI setup</Link>
     </View>
   );
 }
