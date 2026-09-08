@@ -20,11 +20,16 @@ public class PianoMidiModule: Module {
   private var refCons: [Int32: UnsafeMutablePointer<Int32>] = [:]
   private var pairingDelegate: PairingDelegate?
   private var timebase = mach_timebase_info_data_t()
+  private lazy var bluetooth = BluetoothReconnector { [weak self] status, device in
+    var body: [String: Any] = ["status": status.rawValue]
+    if let d = device { body["device"] = ["id": d.id, "name": d.name] }
+    self?.sendEvent("onBluetoothStatus", body)
+  }
 
   public func definition() -> ModuleDefinition {
     Name("PianoMidi")
 
-    Events("onMidiMessage", "onSourcesChanged")
+    Events("onMidiMessage", "onSourcesChanged", "onBluetoothStatus")
 
     OnCreate {
       mach_timebase_info(&self.timebase)
@@ -39,6 +44,20 @@ public class PianoMidiModule: Module {
       return self.listSources()
     }
 
+    Function("listKnownDevices") { () -> [[String: Any]] in
+      return self.bluetooth.knownDevices.map { ["id": $0.id, "name": $0.name] }
+    }
+
+    /// Reconnect to remembered Bluetooth keyboards. Resolves immediately;
+    /// progress arrives via onBluetoothStatus / onSourcesChanged.
+    AsyncFunction("reconnectKnownDevices") { () in
+      self.bluetooth.reconnectKnown()
+    }.runOnQueue(.main)
+
+    Function("forgetKnownDevice") { (id: String) in
+      self.bluetooth.forget(id: id)
+    }
+
     AsyncFunction("showBluetoothPairing") { (promise: Promise) in
       guard let presenter = self.appContext?.utilities?.currentViewController() else {
         promise.reject("E_NO_VIEW_CONTROLLER", "No view controller available to present from")
@@ -50,6 +69,7 @@ public class PianoMidiModule: Module {
 
       let finish: () -> Void = { [weak self] in
         self?.pairingDelegate = nil
+        self?.bluetooth.rememberConnected()
         self?.refreshConnections()
         promise.resolve(nil)
       }
@@ -118,6 +138,8 @@ public class PianoMidiModule: Module {
       }
     }
     sendEvent("onSourcesChanged", ["sources": listSources()])
+    // A new Bluetooth source may have appeared (picker or auto-reconnect).
+    bluetooth.rememberConnected()
   }
 
   private func refConPointer(for uid: Int32) -> UnsafeMutablePointer<Int32> {
