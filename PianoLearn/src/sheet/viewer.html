@@ -24,6 +24,10 @@
   var osmd = null;
   var loaded = false;
   var unitPx = 10; // OSMD units -> px at zoom 1
+  var lastCursor = null;   // { measureIndex, offsetQuarters }
+  var lastRange = null;    // { start, end }
+  var lastWidth = window.innerWidth;
+  var resizeTimer = null;
 
   function fail(e) {
     var msg = (e && e.message) ? e.message : String(e);
@@ -119,6 +123,7 @@
     // Move the cursor to a measure index (0-based) and quarter-note offset within it.
     setCursor: function (measureIndex, offsetQuarters) {
       if (!osmd || !loaded) return;
+      lastCursor = { measureIndex: measureIndex, offsetQuarters: offsetQuarters };
       var c = osmd.cursor;
       c.reset();
       var it = c.iterator;
@@ -148,6 +153,7 @@
 
     highlightRange: function (start, end) {
       if (!osmd || !loaded) return;
+      lastRange = (start == null || end == null) ? null : { start: start, end: end };
       var svg = container.querySelector('svg');
       if (!svg) return;
       var old = svg.querySelectorAll('.loop-hl');
@@ -165,6 +171,21 @@
       }
     }
   };
+
+  function relayout() {
+    if (!osmd || !loaded) return;
+    osmd.render();
+    osmd.cursor.show();
+    if (lastCursor) window.api.setCursor(lastCursor.measureIndex, lastCursor.offsetQuarters);
+    if (lastRange) window.api.highlightRange(lastRange.start, lastRange.end);
+  }
+
+  window.addEventListener('resize', function () {
+    if (Math.abs(window.innerWidth - lastWidth) < 2) return;
+    lastWidth = window.innerWidth;
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(relayout, 150);
+  });
 
   container.addEventListener('click', function (ev) {
     if (!osmd || !loaded) return;
