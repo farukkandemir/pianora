@@ -30,11 +30,19 @@ export interface WaitModeState {
   finished: boolean;
 }
 
+export type ChordMode =
+  /** All notes of the event must be held down at the same time. Default. */
+  | 'held'
+  /** Notes count once struck, even if released before the rest arrive. */
+  | 'accumulate';
+
 export interface WaitModeOptions {
   loop?: MeasureRange;
+  /** How chords are judged. Default 'held'. */
+  chordMode?: ChordMode;
   /**
-   * If true, a wrong note clears the notes already satisfied for a chord,
-   * so the user has to re-strike the whole chord. Default false (lenient).
+   * Accumulate mode only: a wrong note clears the notes already counted,
+   * so the user has to re-strike the whole chord. Default false.
    */
   strictChords?: boolean;
 }
@@ -46,12 +54,14 @@ export class WaitModeSession {
   private held = new Set<number>();
   private wrongHeld = new Set<number>();
   private loop?: MeasureRange;
+  private chordMode: ChordMode;
   private strictChords: boolean;
   private done = false;
 
   constructor(events: PracticeEvent[], opts: WaitModeOptions = {}) {
     this.events = events;
     this.loop = opts.loop;
+    this.chordMode = opts.chordMode ?? 'held';
     this.strictChords = opts.strictChords ?? false;
     if (this.loop) this.idx = firstEventInMeasure(events, this.loop.start);
     this.done = this.idx >= events.length;
@@ -61,13 +71,25 @@ export class WaitModeSession {
     return this.events[this.idx];
   }
 
+  /**
+   * Expected notes currently counted as done. In held mode a note counts only
+   * if it was struck after this event became current AND is still down, so a
+   * key held over from the previous chord must be re-struck.
+   */
+  private satisfiedNow(): Set<number> {
+    if (this.chordMode !== 'held') return this.satisfied;
+    const cur = this.current;
+    return new Set(cur ? cur.midis.filter((m) => this.satisfied.has(m) && this.held.has(m)) : []);
+  }
+
   get state(): WaitModeState {
     const cur = this.current;
-    const remaining = cur ? cur.midis.filter((m) => !this.satisfied.has(m)) : [];
+    const satisfied = this.satisfiedNow();
+    const remaining = cur ? cur.midis.filter((m) => !satisfied.has(m)) : [];
     return {
       eventIndex: this.idx,
       remaining,
-      satisfied: [...this.satisfied].sort((a, b) => a - b),
+      satisfied: [...satisfied].sort((a, b) => a - b),
       wrongHeld: [...this.wrongHeld].sort((a, b) => a - b),
       held: [...this.held].sort((a, b) => a - b),
       finished: this.done,
@@ -108,12 +130,13 @@ export class WaitModeSession {
 
     if (!cur.midis.includes(midi)) {
       this.wrongHeld.add(midi);
-      if (this.strictChords) this.satisfied.clear();
+      if (this.chordMode === 'accumulate' && this.strictChords) this.satisfied.clear();
       return { verdict: 'wrong', advanced: false, finished: false, eventIndex: this.idx };
     }
 
     this.satisfied.add(midi);
-    const complete = cur.midis.every((m) => this.satisfied.has(m));
+    const done = this.satisfiedNow();
+    const complete = cur.midis.every((m) => done.has(m));
     if (!complete) {
       return { verdict: 'correct', advanced: false, finished: false, eventIndex: this.idx };
     }

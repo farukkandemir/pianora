@@ -6,6 +6,20 @@
 import { memo, useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import type { Hand } from '@/engine/model';
+
+export interface ExpectedKey {
+  midi: number;
+  hand: Hand;
+}
+
+/** Hand colors, shared with any other view that marks notes by hand. */
+export const HAND_COLORS: Record<Hand, string> = {
+  right: '#3e8ef7',
+  left: '#f59e0b',
+  unknown: '#3e8ef7',
+};
+
 export interface KeyboardRange {
   /** Inclusive MIDI numbers; both are snapped outward to C and B. */
   low: number;
@@ -14,8 +28,8 @@ export interface KeyboardRange {
 
 interface Props {
   range: KeyboardRange;
-  /** Keys the user must play now. */
-  expected: number[];
+  /** Keys the user must play now, with the hand that plays them. */
+  expected: ExpectedKey[];
   /** Expected keys already satisfied (chords in progress). */
   satisfied: number[];
   /** Wrong keys currently held. */
@@ -47,7 +61,8 @@ export const PianoKeyboard = memo(function PianoKeyboard({
     return out;
   }, [low, high]);
 
-  const expectedSet = new Set(expected);
+  const expectedHand = new Map<number, Hand>();
+  for (const e of expected) if (!expectedHand.has(e.midi)) expectedHand.set(e.midi, e.hand);
   const satisfiedSet = new Set(satisfied);
   const wrongSet = new Set(wrong);
   const heldSet = new Set(held);
@@ -55,7 +70,8 @@ export const PianoKeyboard = memo(function PianoKeyboard({
   const colorFor = (midi: number, black: boolean): string => {
     if (wrongSet.has(midi)) return '#e5484d';
     if (satisfiedSet.has(midi)) return '#30a46c';
-    if (expectedSet.has(midi)) return '#3e8ef7';
+    const hand = expectedHand.get(midi);
+    if (hand) return HAND_COLORS[hand];
     if (heldSet.has(midi)) return black ? '#666' : '#d8d8d8';
     return black ? '#222' : '#fff';
   };

@@ -133,6 +133,9 @@ function Practice({ data }: { data: Loaded }) {
     return () => { save(); };
   }, [data.song.id, cur?.measureIndex, handMode, loop]);
 
+  const remainingSet = new Set(session.state.remaining);
+  const expectedKeys = cur ? cur.notes.filter((n) => remainingSet.has(n.midi)).map((n) => ({ midi: n.midi, hand: n.hand })) : [];
+
   const statusText = session.state.finished
     ? 'Finished! Tap restart to play again.'
     : cur
@@ -167,7 +170,7 @@ function Practice({ data }: { data: Loaded }) {
       />
       <PianoKeyboard
         range={keyRange}
-        expected={session.state.remaining}
+        expected={expectedKeys}
         satisfied={session.state.satisfied}
         wrong={session.state.wrongHeld}
         held={session.state.held}

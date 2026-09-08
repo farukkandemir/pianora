@@ -47,8 +47,8 @@ describe('WaitModeSession', () => {
     expect(s.state.remaining).toEqual([C4]);
   });
 
-  it('requires all chord notes, in any order, lenient on wrong notes', () => {
-    const s = new WaitModeSession(buildEvents(score, 'right'));
+  it('accumulate mode: chord notes count once struck, in any order', () => {
+    const s = new WaitModeSession(buildEvents(score, 'right'), { chordMode: 'accumulate' });
     s.jumpToMeasure(2);
     expect(s.state.remaining).toEqual([C4, E4, G4]);
 
@@ -60,8 +60,26 @@ describe('WaitModeSession', () => {
     expect(s.state.remaining).toEqual([G4]);
   });
 
-  it('strict chords reset progress on a wrong note', () => {
-    const s = new WaitModeSession(buildEvents(score, 'right'), { strictChords: true });
+  it('held mode (default): chord notes must be down together', () => {
+    const s = new WaitModeSession(buildEvents(score, 'right'));
+    s.jumpToMeasure(2);
+    expect(s.state.remaining).toEqual([C4, E4, G4]);
+
+    s.noteOn(C4);
+    expect(s.state.satisfied).toEqual([C4]);
+    s.noteOff(C4);
+    expect(s.state.satisfied).toEqual([]); // released = no longer counted
+    expect(s.state.remaining).toEqual([C4, E4, G4]);
+
+    s.noteOn(C4); s.noteOn(E4);
+    expect(s.noteOn(D4).verdict).toBe('wrong');
+    expect(s.state.satisfied).toEqual([C4, E4]); // wrong note doesn't undo held ones
+    expect(s.noteOn(G4)).toMatchObject({ verdict: 'correct', advanced: true });
+    expect(s.state.remaining).toEqual([G4]);
+  });
+
+  it('accumulate + strictChords resets progress on a wrong note', () => {
+    const s = new WaitModeSession(buildEvents(score, 'right'), { chordMode: 'accumulate', strictChords: true });
     s.jumpToMeasure(2);
     s.noteOn(G4);
     s.noteOn(D4);

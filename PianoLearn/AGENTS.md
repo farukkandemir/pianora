@@ -3,7 +3,13 @@
 Expo SDK 57. Read the versioned docs at https://docs.expo.dev/versions/v57.0.0/ before writing Expo-specific code.
 
 ## Product
-Beginner piano app: import MusicXML, connect a MIDI keyboard, learn songs in Wait Mode.
+Piano practice app: import MusicXML, connect a MIDI keyboard, learn songs in Wait Mode.
+Audience is NOT only beginners. Beginners are the first users, but the owner intends this for
+players at every level, so don't justify decisions with "beginners won't need it" or soften
+behavior for beginners by default. Prefer accurate, musician-grade behavior with options.
+- Wait Mode chords are STRICT by default: all notes of a chord must be held at the same time.
+  A lenient "accumulate" mode may exist as an option, never as the default.
+- On-screen keyboard colors notes by hand (right vs left).
 Full spec: `../PianoLearn_V1_Spec.md`. Target: iOS App Store first. Playback is silent for now (cursor only).
 Test device: iPhone 16 Pro. Keyboard: Casio, Bluetooth MIDI preferred.
 
