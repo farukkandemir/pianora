@@ -22,7 +22,7 @@ export default function LibraryScreen() {
       await refresh();
       router.push({ pathname: '/song/[id]', params: { id: song.id } });
     } catch (e) {
-      const msg = e instanceof ImportError ? e.message : `Import failed. ${e instanceof Error ? e.message : ''}`;
+      const msg = e instanceof ImportError ? e.message : 'Something went wrong while importing.';
       Alert.alert('Could not import', msg);
     } finally {
       setBusy(false);

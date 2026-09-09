@@ -11,7 +11,8 @@
  */
 import type { Measure } from './model';
 
-export function unrollRepeats(measures: Measure[]): number[] {
+export function unrollRepeats(input: Measure[]): number[] {
+  const measures = numberUnnumberedEndings(input);
   const n = measures.length;
   const order: number[] = [];
   if (n === 0) return order;
@@ -27,11 +28,8 @@ export function unrollRepeats(measures: Measure[]): number[] {
   while (i < n && order.length < guard) {
     const m = marks(i);
 
-    if (m.repeatForward && !afterJump) {
-      if (repeatStart !== i) { repeatStart = i; pass = 1; }
-    }
-
-    // Skip an ending bracket that isn't for this pass.
+    // Endings are judged against the enclosing repeat's pass, before any
+    // forward repeat on this same measure opens a new (inner) repeat.
     if (m.endingStart && m.endingStart.length > 0 && !afterJump && !m.endingStart.includes(pass)) {
       i = findEndingStop(measures, i) + 1;
       continue;
@@ -40,6 +38,10 @@ export function unrollRepeats(measures: Measure[]): number[] {
       // After a D.C./D.S., play the last ending only.
       const last = lastEndingNumber(measures, i);
       if (!m.endingStart.includes(last)) { i = findEndingStop(measures, i) + 1; continue; }
+    }
+
+    if (m.repeatForward && !afterJump) {
+      if (repeatStart !== i) { repeatStart = i; pass = 1; }
     }
 
     order.push(i);
@@ -51,7 +53,8 @@ export function unrollRepeats(measures: Measure[]): number[] {
     }
 
     if (m.repeatBackward && !afterJump) {
-      const times = Math.max(2, m.repeatBackward.times || 2);
+      // Endings decide the pass count: [1.] [2.] [3,5,7.] [4,6.] [8.] means 8 passes.
+      const times = Math.max(2, m.repeatBackward.times || 2, maxEndingNumber(measures, repeatStart));
       if (pass < times) {
         pass += 1;
         i = repeatStart;
@@ -76,12 +79,69 @@ export function unrollRepeats(measures: Measure[]): number[] {
   return order;
 }
 
+/**
+ * Brackets written without numbers ("first ending", "second ending" by
+ * position) get 1, 2, ... within their group. Returns a shallow copy; the
+ * caller's measures are untouched.
+ */
+function numberUnnumberedEndings(measures: Measure[]): Measure[] {
+  let counter = 0;
+  let inEnding = false;
+  let sawEnding = false;
+  return measures.map((m) => {
+    const r = m.repeats;
+    if (!r) {
+      if (sawEnding && !inEnding) { counter = 0; sawEnding = false; }
+      return m;
+    }
+    let out = m;
+    if (r.endingStart) {
+      if (!inEnding && sawEnding === false) counter = 0;
+      inEnding = true;
+      sawEnding = true;
+      if (r.endingStart.length === 0) {
+        counter += 1;
+        out = { ...m, repeats: { ...r, endingStart: [counter] } };
+      } else {
+        counter = Math.max(counter, ...r.endingStart);
+      }
+    } else if (sawEnding && !inEnding) {
+      counter = 0;
+      sawEnding = false;
+    }
+    if (r.endingStop) inEnding = false;
+    return out;
+  });
+}
+
 function findEndingStop(measures: Measure[], start: number): number {
   for (let j = start; j < measures.length; j++) {
     if (measures[j].repeats?.endingStop) return j;
     if (j > start && measures[j].repeats?.endingStart) return j - 1;
   }
   return start;
+}
+
+/**
+ * Highest ending number among the contiguous ending brackets that belong to
+ * the repeat starting at `repeatStart`, or 0 if it has none.
+ */
+function maxEndingNumber(measures: Measure[], repeatStart: number): number {
+  let best = 0;
+  let inEnding = false;
+  let sawEnding = false;
+  for (let j = repeatStart; j < measures.length; j++) {
+    const r = measures[j].repeats ?? {};
+    if (r.endingStart) {
+      inEnding = true;
+      sawEnding = true;
+      best = Math.max(best, ...r.endingStart);
+    } else if (sawEnding && !inEnding) {
+      break; // first plain measure after the ending group
+    }
+    if (r.endingStop) inEnding = false;
+  }
+  return best;
 }
 
 /** Highest ending number in the bracket group that starts at `start`. */

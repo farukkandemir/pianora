@@ -6,7 +6,7 @@ import { unrollRepeats } from '../unroll';
 function measures(marks: (RepeatMarks | undefined)[]): Measure[] {
   return marks.map((repeats, index) => ({
     index, number: String(index + 1), startBeat: index * 4, durationBeats: 4,
-    timeSignature: { beats: 4, beatType: 4 }, repeats,
+    timeSignature: { beats: 4, beatType: 4, quarters: 4, label: '4/4' }, repeats,
   }));
 }
 

@@ -31,3 +31,15 @@ Test device: iPhone 16 Pro. Keyboard: Casio, Bluetooth MIDI preferred.
 - `npm run typecheck`
 - `npx expo start` — Metro dev server
 - `npx expo run:ios --device "iPhone 17"` — native build to simulator (only needed after native deps change)
+
+## Launch readiness (keep current)
+Hardened, with tests:
+- Parser conformance: all 181 files of the unofficial MusicXML test suite parse and pass score
+  invariants (`src/engine/__tests__/corpus.test.ts`); hand-verified expectations for pitches,
+  durations, tuplets, chords, voices, grace notes, piano staves, repeats/endings, pickups,
+  additive time signatures, transposing instruments, score-timewise.
+- Import: parse-validated, invariant-checked, user-facing error kinds, no half-saved songs.
+Not yet hardened:
+- Exporter quirks (Finale, Sibelius, Dorico, Flat, Noteflight, scanning apps): need real sample files.
+- MIDI edge cases (device drops mid-session, multiple keyboards), storage-full, very long scores
+  (renderer performance), backgrounding during practice.

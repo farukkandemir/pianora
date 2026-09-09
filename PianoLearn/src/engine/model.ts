@@ -9,8 +9,13 @@ export type Hand = 'right' | 'left' | 'unknown';
 export type HandMode = 'right' | 'left' | 'both';
 
 export interface TimeSignature {
+  /** First (or only) numerator, for display. Additive numerators are summed. */
   beats: number;
   beatType: number;
+  /** Nominal measure length in quarter notes, covering additive (3+2/8) and multiple (3/8 + 3/4) signatures. */
+  quarters: number;
+  /** As written, e.g. "4/4", "3+2/8", "3/8+3/4". */
+  label: string;
 }
 
 export interface Note {
@@ -35,7 +40,7 @@ export interface RepeatMarks {
   repeatForward?: boolean;
   /** Right barline has a backward repeat (:|). Times = total passes (default 2). */
   repeatBackward?: { times: number };
-  /** Ending bracket starting at this measure, e.g. [1] or [1,2]. */
+  /** Ending bracket starting at this measure, e.g. [1] or [1,2]. Empty = unnumbered. */
   endingStart?: number[];
   /** Ending bracket ending at this measure. */
   endingStop?: boolean;
@@ -95,6 +100,13 @@ export function midiNumber(step: string, alter: number, octave: number): number 
   const base = STEP_SEMITONES[step];
   if (base === undefined) throw new Error(`Unknown pitch step: ${step}`);
   return (octave + 1) * 12 + base + alter;
+}
+
+const SHARP_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+
+/** Spelling for a sounding MIDI number when the written spelling no longer applies. */
+export function pitchFromMidi(midi: number): string {
+  return `${SHARP_NAMES[((midi % 12) + 12) % 12]}${Math.floor(midi / 12) - 1}`;
 }
 
 export function totalBeats(score: Score): number {

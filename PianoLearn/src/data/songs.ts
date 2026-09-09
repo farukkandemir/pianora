@@ -3,7 +3,9 @@
  */
 import type { File } from 'expo-file-system';
 
+import { checkScoreInvariants } from '@/engine/invariants';
 import { loadScore, type LoadedScore } from '@/engine/musicxml/load';
+import { MusicXmlError } from '@/engine/musicxml/parse';
 import type { HandMode } from '@/engine/model';
 
 import { getDb } from './db';
@@ -51,19 +53,53 @@ interface ProgressRow {
   updated_at: number;
 }
 
-export class ImportError extends Error {}
+export type ImportErrorKind = 'not-musicxml' | 'corrupt' | 'no-notes' | 'invalid' | 'storage';
 
-export async function importSong(picked: File): Promise<SongRecord> {
-  const bytes = await picked.bytes();
+const IMPORT_MESSAGES: Record<ImportErrorKind, string> = {
+  'not-musicxml': "This isn't a MusicXML file. Export the score as MusicXML (.musicxml, .xml or .mxl) and try again.",
+  corrupt: "This file couldn't be read. It may be damaged or an incomplete download.",
+  'no-notes': 'This file has no playable notes. Check that it contains a piano part.',
+  invalid: 'This file has musical content the app could not make sense of.',
+  storage: 'The song could not be saved on this device.',
+};
+
+export class ImportError extends Error {
+  constructor(public readonly kind: ImportErrorKind, detail?: string) {
+    super(IMPORT_MESSAGES[kind] + (detail ? ` (${detail})` : ''));
+  }
+}
+
+/** Parse and validate; throws ImportError with a user-facing message. */
+export function validateForImport(bytes: Uint8Array): LoadedScore {
   let loaded: LoadedScore;
   try {
     loaded = loadScore(bytes);
   } catch (e) {
-    throw new ImportError(`This file isn't valid MusicXML. ${e instanceof Error ? e.message : ''}`.trim());
+    if (e instanceof MusicXmlError) throw new ImportError('not-musicxml');
+    throw new ImportError('corrupt');
   }
+  if (loaded.score.notes.length === 0) throw new ImportError('no-notes');
+  const problems = checkScoreInvariants(loaded.score);
+  if (problems.length) throw new ImportError('invalid', problems[0]);
+  return loaded;
+}
+
+export async function importSong(picked: File): Promise<SongRecord> {
+  let bytes: Uint8Array;
+  try {
+    bytes = await picked.bytes();
+  } catch {
+    throw new ImportError('corrupt');
+  }
+  const loaded = validateForImport(bytes);
 
   const id = newId();
-  const fileName = storeSongFile(picked, id);
+  let fileName: string;
+  try {
+    fileName = storeSongFile(picked, id);
+  } catch (e) {
+    throw new ImportError('storage', e instanceof Error ? e.message : undefined);
+  }
   const record: SongRecord = {
     id,
     title: loaded.score.title ?? guessTitle(picked.name),
@@ -73,11 +109,16 @@ export async function importSong(picked: File): Promise<SongRecord> {
     totalMeasures: loaded.score.measures.length,
   };
 
-  const db = await getDb();
-  await db.runAsync(
-    'INSERT INTO songs (id, title, composer, file_name, imported_at, total_measures) VALUES (?, ?, ?, ?, ?, ?)',
-    record.id, record.title, record.composer, record.fileName, record.importedAt, record.totalMeasures,
-  );
+  try {
+    const db = await getDb();
+    await db.runAsync(
+      'INSERT INTO songs (id, title, composer, file_name, imported_at, total_measures) VALUES (?, ?, ?, ?, ?, ?)',
+      record.id, record.title, record.composer, record.fileName, record.importedAt, record.totalMeasures,
+    );
+  } catch (e) {
+    deleteSongFile(fileName);
+    throw new ImportError('storage', e instanceof Error ? e.message : undefined);
+  }
   return record;
 }
 

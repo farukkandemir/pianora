@@ -14,6 +14,7 @@ import {
   Score,
   TimeSignature,
   midiNumber,
+  pitchFromMidi,
   pitchName,
 } from '../model';
 import { unrollRepeats } from '../unroll';
@@ -62,12 +63,12 @@ export class MusicXmlError extends Error {}
 
 /** Parse an uncompressed .musicxml / .xml string. */
 export function parseMusicXml(xml: string): Score {
-  const root = findRoot(parseXml(xml), 'score-partwise');
+  const doc = parseXml(xml);
+  let root = findRoot(doc, 'score-partwise');
   if (!root) {
-    if (findRoot(parseXml(xml), 'score-timewise')) {
-      throw new MusicXmlError('score-timewise files are not supported yet');
-    }
-    throw new MusicXmlError('Not a MusicXML file (no <score-partwise> root)');
+    const timewise = findRoot(doc, 'score-timewise');
+    if (!timewise) throw new MusicXmlError('Not a MusicXML file (no <score-partwise> or <score-timewise> root)');
+    root = timewiseToPartwise(timewise);
   }
 
   const workTitle = find(root, 'work', 'work-title');
@@ -87,8 +88,30 @@ export function parseMusicXml(xml: string): Score {
 
 // ---------------------------------------------------------------------------
 
+/**
+ * <score-timewise> nests parts inside measures; we parse the partwise shape
+ * (measures inside parts). Regroup the same nodes without copying content.
+ */
+function timewiseToPartwise(timewise: XNode): XNode {
+  const partsById = new Map<string, XNode[]>();
+  const others: XNode[] = [];
+  for (const node of childrenOf(timewise)) {
+    if (tagOf(node) !== 'measure') { others.push(node); continue; }
+    const measureAttrs = attrsOf(node);
+    for (const partNode of childrenNamed(node, 'part')) {
+      const id = attrsOf(partNode).id ?? '';
+      if (!partsById.has(id)) partsById.set(id, []);
+      partsById.get(id)!.push({ measure: childrenOf(partNode), ':@': measureAttrs });
+    }
+  }
+  const parts: XNode[] = [...partsById].map(([id, measures]) => ({ part: measures, ':@': { id } }));
+  return { 'score-partwise': [...others, ...parts], ':@': attrsOf(timewise) };
+}
+
 function parsePart(part: XNode): RawMeasure[] {
   let divisions = 1;
+  /** Semitones to add to written pitches to get sounding pitches (transposing instruments). */
+  let transpose = 0;
   const out: RawMeasure[] = [];
 
   for (const m of childrenNamed(part, 'measure')) {
@@ -105,12 +128,17 @@ function parsePart(part: XNode): RawMeasure[] {
           if (d) divisions = Number(d);
           const time = child(el, 'time');
           if (time) {
-            const beats = Number(childText(time, 'beats'));
-            const beatType = Number(childText(time, 'beat-type'));
-            if (beats > 0 && beatType > 0) raw.timeSignature = { beats, beatType };
+            const ts = readTimeSignature(time);
+            if (ts) raw.timeSignature = ts;
           }
           const staves = childText(el, 'staves');
           if (staves) raw.staffCount = Number(staves);
+          const tr = child(el, 'transpose');
+          if (tr) {
+            const chromatic = Number(childText(tr, 'chromatic') ?? 0);
+            const octaves = Number(childText(tr, 'octave-change') ?? 0);
+            transpose = chromatic + 12 * octaves;
+          }
           break;
         }
         case 'direction': {
@@ -153,9 +181,10 @@ function parsePart(part: XNode): RawMeasure[] {
             const alter = Number(childText(pitch, 'alter') ?? 0);
             const octave = Number(childText(pitch, 'octave') ?? 4);
             const ties = childrenNamed(el, 'tie').map((x) => attrsOf(x).type);
+            const written = midiNumber(step, alter, octave);
             raw.notes.push({
-              midi: midiNumber(step, alter, octave),
-              pitch: pitchName(step, alter, octave),
+              midi: written + transpose,
+              pitch: transpose === 0 ? pitchName(step, alter, octave) : pitchFromMidi(written + transpose),
               offsetBeats: start / divisions,
               durationBeats: dur / divisions,
               staff: Number(childText(el, 'staff') ?? 1),
@@ -196,6 +225,33 @@ function readTempo(direction: XNode): number | undefined {
   return undefined;
 }
 
+/**
+ * <time> may hold several <beats>/<beat-type> pairs (3/8 + 3/4) and each
+ * <beats> may be additive (3+2). The nominal length is the sum of all parts.
+ */
+function readTimeSignature(time: XNode): TimeSignature | undefined {
+  const beatsList = childrenNamed(time, 'beats').map(textOf);
+  const typeList = childrenNamed(time, 'beat-type').map(textOf);
+  if (beatsList.length === 0 || typeList.length === 0) return undefined;
+  let quarters = 0;
+  const parts: string[] = [];
+  for (let i = 0; i < beatsList.length; i++) {
+    const nums = beatsList[i].split('+').map((x) => Number(x.trim())).filter((n) => n > 0);
+    const beatType = Number(typeList[Math.min(i, typeList.length - 1)]);
+    if (nums.length === 0 || !(beatType > 0)) return undefined;
+    const sum = nums.reduce((a, b) => a + b, 0);
+    quarters += (sum * 4) / beatType;
+    parts.push(`${nums.join('+')}/${beatType}`);
+  }
+  const firstNums = beatsList[0].split('+').map((x) => Number(x.trim())).filter((n) => n > 0);
+  return {
+    beats: firstNums.reduce((a, b) => a + b, 0),
+    beatType: Number(typeList[0]),
+    quarters,
+    label: parts.join('+'),
+  };
+}
+
 function marks(raw: RawMeasure): RepeatMarks {
   return (raw.repeats ??= {});
 }
@@ -211,8 +267,9 @@ function readBarline(el: XNode, raw: RawMeasure): void {
   if (ending) {
     const a = attrsOf(ending);
     if (a.type === 'start') {
-      const nums = String(a.number ?? '1').split(/[,\s]+/).map(Number).filter((n) => n > 0);
-      marks(raw).endingStart = nums.length ? nums : [1];
+      // Empty = unnumbered bracket; the unroller numbers those by position.
+      const nums = String(a.number ?? '').split(/[,\s]+/).map(Number).filter((n) => n > 0);
+      marks(raw).endingStart = nums;
     } else if (a.type === 'stop' || a.type === 'discontinue') {
       marks(raw).endingStop = true;
     }
@@ -242,7 +299,7 @@ function beatUnitToQuarters(unit: string): number {
 function assemble(rawParts: RawMeasure[][], title?: string, composer?: string): Score {
   const measureCount = Math.max(...rawParts.map((p) => p.length));
   const measures: Measure[] = [];
-  let timeSig: TimeSignature = { beats: 4, beatType: 4 };
+  let timeSig: TimeSignature = { beats: 4, beatType: 4, quarters: 4, label: '4/4' };
   let startBeat = 0;
   let initialTempo: number | undefined;
 
@@ -250,10 +307,12 @@ function assemble(rawParts: RawMeasure[][], title?: string, composer?: string): 
     const slots = rawParts.map((p) => p[i]).filter((x): x is RawMeasure => !!x);
     const ts = slots.find((s) => s.timeSignature)?.timeSignature;
     if (ts) timeSig = ts;
-    const nominal = (timeSig.beats * 4) / timeSig.beatType;
+    const nominal = timeSig.quarters;
     const observed = Math.max(0, ...slots.map((s) => s.lengthBeats));
-    // Pickup / irregular measures are shorter than nominal; trust the content.
-    const duration = observed > EPS ? Math.min(observed, nominal) : nominal;
+    // Pickups are shorter than nominal: trust the content. Content longer
+    // than nominal means the signature is wrong or missing: trust the content
+    // too, so notes never fall outside their measure.
+    const duration = observed > EPS ? observed : nominal;
     const tempo = slots.find((s) => s.tempoBpm !== undefined)?.tempoBpm;
     if (tempo !== undefined && initialTempo === undefined) initialTempo = tempo;
 
@@ -334,12 +393,12 @@ function findTiePredecessor(notes: Note[], n: Note): Note | undefined {
 
 /**
  * Hand assignment heuristic:
- * - single part with 2+ staves: staff 1 = right, staff 2+ = left
- * - two or more parts, one staff each: part 0 = right, part 1 = left
- * - anything else: unknown (treated as both hands)
+ * - a part with 2+ staves: staff 1 = right, staff 2+ = left
+ * - exactly two parts, one staff each: part 0 = right, part 1 = left
+ * - anything else (single staff, or an ensemble score): unknown = both hands
  */
 function assignHand(partIndex: number, partCount: number, staff: number, staffCount: number): Hand {
   if (staffCount >= 2) return staff === 1 ? 'right' : 'left';
-  if (partCount >= 2) return partIndex === 0 ? 'right' : partIndex === 1 ? 'left' : 'unknown';
+  if (partCount === 2) return partIndex === 0 ? 'right' : 'left';
   return 'unknown';
 }

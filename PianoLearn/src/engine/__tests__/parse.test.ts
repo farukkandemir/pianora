@@ -16,7 +16,7 @@ describe('parseMusicXml', () => {
     expect(score.measures.map((m) => m.durationBeats)).toEqual([1, 4, 4, 4]);
     expect(score.measures.map((m) => m.startBeat)).toEqual([0, 1, 5, 9]);
     expect(score.measures[0].number).toBe('0');
-    expect(score.measures[1].timeSignature).toEqual({ beats: 4, beatType: 4 });
+    expect(score.measures[1].timeSignature).toEqual({ beats: 4, beatType: 4, quarters: 4, label: '4/4' });
     expect(totalBeats(score)).toBe(13);
   });
 
@@ -71,5 +71,39 @@ describe('parseMusicXml', () => {
 
   it('rejects non-MusicXML', () => {
     expect(() => parseMusicXml('<html></html>')).toThrow(MusicXmlError);
+  });
+});
+
+describe('score-timewise', () => {
+  const XML = `<?xml version="1.0"?>
+<score-timewise version="3.1">
+  <movement-title>Timewise</movement-title>
+  <part-list>
+    <score-part id="P1"><part-name>RH</part-name></score-part>
+    <score-part id="P2"><part-name>LH</part-name></score-part>
+  </part-list>
+  <measure number="1">
+    <part id="P1">
+      <attributes><divisions>1</divisions><time><beats>2</beats><beat-type>4</beat-type></time></attributes>
+      <note><pitch><step>E</step><octave>4</octave></pitch><duration>1</duration></note>
+      <note><pitch><step>F</step><octave>4</octave></pitch><duration>1</duration></note>
+    </part>
+    <part id="P2">
+      <attributes><divisions>1</divisions></attributes>
+      <note><pitch><step>C</step><octave>3</octave></pitch><duration>2</duration></note>
+    </part>
+  </measure>
+  <measure number="2">
+    <part id="P1"><note><pitch><step>G</step><octave>4</octave></pitch><duration>2</duration></note></part>
+    <part id="P2"><note><pitch><step>G</step><octave>2</octave></pitch><duration>2</duration></note></part>
+  </measure>
+</score-timewise>`;
+
+  it('parses the same as the partwise equivalent', () => {
+    const s = parseMusicXml(XML);
+    expect(s.title).toBe('Timewise');
+    expect(s.partCount).toBe(2);
+    expect(s.measures.map((m) => m.durationBeats)).toEqual([2, 2]);
+    expect(s.notes.map((n) => `${n.pitch}@${n.startBeat}${n.hand[0]}`)).toEqual(['C3@0l', 'E4@0r', 'F4@1r', 'G2@2l', 'G4@2r']);
   });
 });
