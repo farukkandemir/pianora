@@ -77,8 +77,10 @@ function Practice({ data }: { data: Loaded }) {
 
   // Sheet lifecycle
   useEffect(() => {
-    if (sheetReady) sheet.current?.load(data.xml, 0.6);
-  }, [data.xml, sheetReady]);
+    if (!sheetReady) return;
+    sheet.current?.setPadding(insets.left, insets.right);
+    sheet.current?.load(data.xml, 1);
+  }, [data.xml, sheetReady, insets.left, insets.right]);
 
   const [sheetLoaded, setSheetLoaded] = useState(false);
   useEffect(() => {

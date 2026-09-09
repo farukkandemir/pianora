@@ -4,8 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <style>
-  html, body { margin: 0; padding: 0; background: #fff; -webkit-user-select: none; user-select: none; overflow-x: hidden; }
-  #sheet { padding: 6px 4px 80px 4px; }
+  html { margin: 0; padding: 0; height: 100%; }
+  /* Overflow on body (not html) propagates to the viewport, so window.scrollTo works. */
+  body { margin: 0; padding: 0; height: 100%; background: #fff; -webkit-user-select: none; user-select: none; overflow-y: hidden; overflow-x: auto; white-space: nowrap; }
+  /* Ribbon: one horizontal staff line; page scrolls sideways. */
+  #sheet { display: inline-block; vertical-align: top; padding: 0 var(--pad-right, 40vw) 0 var(--pad-left, 24px); }
   #err { color: #b00020; font: 14px -apple-system, sans-serif; padding: 12px; white-space: pre-wrap; }
   .loop-hl { fill: rgba(255, 200, 0, 0.18); }
 </style>
@@ -47,7 +50,7 @@
       drawPartNames: false,
       drawMeasureNumbers: true,
       followCursor: false,
-      renderSingleHorizontalStaffline: false,
+      renderSingleHorizontalStaffline: true,
       cursorsOptions: [{ type: 0, color: '#2f80ed', alpha: 0.35, follow: false }]
     });
     // Tight page margins: the phone screen is the page.
@@ -85,20 +88,33 @@
     return out;
   }
 
+  // Scale the single system so it fills the WebView height.
+  function fitZoom() {
+    if (!osmd || !loaded) return;
+    var svg = container.querySelector('svg');
+    if (!svg) return;
+    var h = svg.getBoundingClientRect().height / (osmd.Zoom || 1); // height at zoom 1
+    if (!h) return;
+    var target = (window.innerHeight - 8) / h;
+    var z = Math.max(0.35, Math.min(1.6, target));
+    if (Math.abs(z - osmd.Zoom) > 0.01) {
+      osmd.Zoom = z;
+      osmd.render();
+    }
+  }
+
   function cursorRect() {
     var el = osmd && osmd.cursor && osmd.cursor.cursorElement;
     if (!el) return null;
     return { top: el.offsetTop, left: el.offsetLeft, height: el.offsetHeight };
   }
 
-  function scrollCursorIntoView() {
+  function scrollCursorIntoView(instant) {
     var r = cursorRect();
     if (!r) return;
-    var vh = window.innerHeight;
-    var top = window.scrollY;
-    if (r.top < top + 40 || r.top + r.height > top + vh - 160) {
-      window.scrollTo({ top: Math.max(0, r.top - vh * 0.3), behavior: 'smooth' });
-    }
+    var vw = window.innerWidth;
+    var target = Math.max(0, r.left - vw * 0.33);
+    window.scrollTo({ left: target, top: 0, behavior: instant ? 'auto' : 'smooth' });
   }
 
   window.api = {
@@ -110,12 +126,18 @@
         o.Zoom = zoom || 0.6;
         o.load(xml).then(function () {
           o.render();
+          loaded = true;
+          fitZoom();
           o.cursor.show();
           o.cursor.reset();
-          loaded = true;
           post({ type: 'loaded', measures: o.GraphicSheet.MeasureList.length });
         }).catch(fail);
       } catch (e) { fail(e); }
+    },
+
+    setPadding: function (left, right) {
+      document.documentElement.style.setProperty('--pad-left', Math.max(24, left) + 'px');
+      document.documentElement.style.setProperty('--pad-right', 'calc(40vw + ' + Math.max(0, right) + 'px)');
     },
 
     setZoom: function (zoom) {
@@ -144,7 +166,7 @@
         c.next();
       }
       c.show();
-      scrollCursorIntoView();
+      scrollCursorIntoView(false);
       post({ type: 'cursor', measureIndex: it.CurrentMeasureIndex, rect: cursorRect() });
     },
 
@@ -152,7 +174,7 @@
       if (!osmd || !loaded) return;
       osmd.cursor.next();
       osmd.cursor.show();
-      scrollCursorIntoView();
+      scrollCursorIntoView(false);
       post({ type: 'cursor', measureIndex: osmd.cursor.iterator.CurrentMeasureIndex, rect: cursorRect() });
     },
 
@@ -180,14 +202,17 @@
   function relayout() {
     if (!osmd || !loaded) return;
     osmd.render();
+    fitZoom();
     osmd.cursor.show();
     if (lastCursor) window.api.setCursor(lastCursor.measureIndex, lastCursor.offsetQuarters);
     if (lastRange) window.api.highlightRange(lastRange.start, lastRange.end);
   }
 
+  var lastHeight = window.innerHeight;
   window.addEventListener('resize', function () {
-    if (Math.abs(window.innerWidth - lastWidth) < 2) return;
+    if (Math.abs(window.innerWidth - lastWidth) < 2 && Math.abs(window.innerHeight - lastHeight) < 2) return;
     lastWidth = window.innerWidth;
+    lastHeight = window.innerHeight;
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(relayout, 150);
   });

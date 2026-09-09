@@ -11,6 +11,8 @@ export interface SheetViewHandle {
   next(): void;
   setZoom(zoom: number): void;
   highlightRange(start: number | null, end: number | null): void;
+  /** Keep the start of the music clear of the camera island. */
+  setPadding(left: number, right: number): void;
 }
 
 export type SheetMessage =
@@ -39,6 +41,7 @@ export const SheetView = forwardRef<SheetViewHandle, Props>(function SheetView({
     next: () => call('next'),
     setZoom: (z) => call('setZoom', z),
     highlightRange: (s, e) => call('highlightRange', s, e),
+    setPadding: (l, r) => call('setPadding', l, r),
   }), [call]);
 
   const handleMessage = useCallback((e: WebViewMessageEvent) => {
@@ -59,6 +62,8 @@ export const SheetView = forwardRef<SheetViewHandle, Props>(function SheetView({
         javaScriptEnabled
         scrollEnabled
         bounces={false}
+        showsHorizontalScrollIndicator={false}
+        showsVerticalScrollIndicator={false}
         allowsInlineMediaPlayback
         setSupportMultipleWindows={false}
         style={styles.web}
