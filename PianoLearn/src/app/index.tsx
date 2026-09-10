@@ -5,6 +5,7 @@ import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native
 import { pickSongFile } from '@/data/files';
 import { deleteSong, importSong, ImportError, type SongListItem } from '@/data/songs';
 import { useSongs } from '@/data/useSongs';
+import { Text as UIText } from '@/ui/Text';
 
 export default function LibraryScreen() {
   const router = useRouter();
@@ -55,7 +56,7 @@ export default function LibraryScreen() {
               onLongPress={() => onDelete(item)}
               style={styles.row}
             >
-              <Text style={styles.title}>{item.title}</Text>
+              <UIText variant="subheading">{item.title}</UIText>
               <Text style={styles.muted}>
                 {item.composer ?? 'Unknown composer'} · {item.totalMeasures} measures
               </Text>
