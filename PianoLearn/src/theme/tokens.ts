@@ -91,6 +91,8 @@ export const type = {
   display: { fontSize: 34, lineHeight: 40, letterSpacing: -0.6, weight: 'semibold' },
   title: { fontSize: 30, lineHeight: 36, letterSpacing: -0.3, weight: 'semibold' },
   heading: { fontSize: 22, lineHeight: 28, letterSpacing: -0.2, weight: 'semibold' },
+  /** Section titles inside a screen ("Your pieces"). */
+  section: { fontSize: 20, lineHeight: 26, letterSpacing: -0.1, weight: 'semibold' },
   subheading: { fontSize: 17, lineHeight: 22, letterSpacing: 0, weight: 'semibold' },
   body: { fontSize: 15, lineHeight: 22, letterSpacing: 0, weight: 'regular' },
   bodyStrong: { fontSize: 15, lineHeight: 22, letterSpacing: 0, weight: 'medium' },

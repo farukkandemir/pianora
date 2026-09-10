@@ -1,6 +1,6 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { Alert, FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { Alert, FlatList, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { ContinueCard } from '@/components/library/ContinueCard';
 import { SongArt } from '@/components/library/SongArt';
@@ -14,6 +14,11 @@ import { Button, Card, Icon, IconButton, Screen, Text, useCurtain } from '@/ui';
 export default function LibraryScreen() {
   const router = useRouter();
   const { colors, spacing, radius } = useTheme();
+  const { width } = useWindowDimensions();
+  // Tiles and thumbnails scale with the screen: the Paper design is drawn at
+  // 390pt with 120pt tiles and 40pt thumbnails; phones here are 402-430pt.
+  const tile = Math.round(Math.min(184, Math.max(156, width * 0.41)));
+  const thumb = Math.round(Math.min(64, Math.max(56, width * 0.145)));
   const { songs, error, refresh } = useSongs();
   const curtain = useCurtain();
   const [busy, setBusy] = useState(false);
@@ -62,7 +67,7 @@ export default function LibraryScreen() {
       <Text variant="title">Library</Text>
       <IconButton
         icon={<Icon name="plus" size={20} tone="onInk" />}
-        variant="ink"
+        variant="accent"
         size={42}
         accessibilityLabel="Add music"
         onPress={onImport}
@@ -99,7 +104,7 @@ export default function LibraryScreen() {
       </View>
 
       <View style={[styles.sectionHead, { paddingHorizontal: spacing.screen, paddingTop: spacing.xxl, paddingBottom: spacing.md }]}>
-        <Text variant="subheading">Your pieces</Text>
+        <Text variant="section">Your pieces</Text>
         <Text variant="caption" tone="muted">{songs.length} {songs.length === 1 ? 'piece' : 'pieces'}</Text>
       </View>
       <FlatList
@@ -109,9 +114,9 @@ export default function LibraryScreen() {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: spacing.screen, gap: spacing.md }}
         renderItem={({ item }) => (
-          <Pressable onPress={() => open(item)} onLongPress={() => onDelete(item)} style={({ pressed }) => [styles.tile, pressed && styles.pressed]}>
-            <SongArt songId={item.id} width={120} height={120} radius={radius.lg} />
-            <Text variant="bodyStrong" numberOfLines={1} style={{ paddingTop: spacing.sm }}>{item.title}</Text>
+          <Pressable onPress={() => open(item)} onLongPress={() => onDelete(item)} style={({ pressed }) => [{ width: tile }, pressed && styles.pressed]}>
+            <SongArt songId={item.id} width={tile} height={tile} radius={radius.lg} />
+            <Text variant="bodyStrong" numberOfLines={2} style={{ paddingTop: spacing.sm }}>{item.title}</Text>
             <Text variant="caption" tone="muted" numberOfLines={1}>{displayComposer(item.composer)}</Text>
           </Pressable>
         )}
@@ -119,12 +124,12 @@ export default function LibraryScreen() {
 
       {recent.length > 0 ? (
         <View style={{ paddingHorizontal: spacing.screen, paddingTop: spacing.xxl, gap: spacing.md }}>
-          <Text variant="subheading">Recently played</Text>
+          <Text variant="section">Recently played</Text>
           <View style={{ gap: spacing.sm }}>
             {recent.map((s) => (
               <Pressable key={s.id} onPress={() => open(s)} onLongPress={() => onDelete(s)} style={({ pressed }) => pressed && styles.pressed}>
-                <Card padding={spacing.md} style={styles.row}>
-                  <SongArt songId={s.id} width={40} height={40} radius={radius.sm} />
+                <Card padding={spacing.lg} style={styles.row}>
+                  <SongArt songId={s.id} width={thumb} height={thumb} radius={radius.sm} />
                   <View style={styles.rowText}>
                     <Text variant="bodyStrong" numberOfLines={1}>{s.title}</Text>
                     <Text variant="caption" tone="muted" numberOfLines={1}>
@@ -147,7 +152,6 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   empty: { alignItems: 'stretch' },
   sectionHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
-  tile: { width: 120 },
   pressed: { opacity: 0.85 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   rowText: { flex: 1 },

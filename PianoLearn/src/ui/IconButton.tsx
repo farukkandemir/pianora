@@ -3,11 +3,11 @@ import { Pressable, StyleSheet, type PressableProps, type ViewStyle } from 'reac
 
 import { useTheme } from '@/theme';
 
-type Variant = 'ink' | 'surface' | 'muted';
+type Variant = 'ink' | 'surface' | 'muted' | 'accent';
 
 export type IconButtonProps = Omit<PressableProps, 'style' | 'children'> & {
   icon: ReactNode;
-  /** ink = filled navy (e.g. the Library "+"); surface = white with border; muted = tinted. */
+  /** accent = plum (the Library "+"); ink = filled navy; surface = white with border; muted = tinted. */
   variant?: Variant;
   size?: number;
   style?: ViewStyle;
@@ -17,7 +17,7 @@ export type IconButtonProps = Omit<PressableProps, 'style' | 'children'> & {
 /** Round icon-only button. Always give it an accessibilityLabel; it has no visible text. */
 export function IconButton({ icon, variant = 'surface', size = 40, style, ...rest }: IconButtonProps) {
   const { colors, radius } = useTheme();
-  const bg = variant === 'ink' ? colors.ink : variant === 'surface' ? colors.surface : colors.surfaceMuted;
+  const bg = { ink: colors.ink, surface: colors.surface, muted: colors.surfaceMuted, accent: colors.accent }[variant];
   return (
     <Pressable
       accessibilityRole="button"
