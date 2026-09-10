@@ -3,13 +3,14 @@
  */
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Animated, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PianoKeyboard, noteLabel } from '@/components/PianoKeyboard';
 import { getProgress, getSong, openSong, saveProgress, type SongRecord } from '@/data/songs';
 import type { HandMode, MeasureRange, Score } from '@/engine/model';
 import { PracticeControls, type LoopSelection } from '@/practice/PracticeControls';
+import { PracticeTitleCard } from '@/practice/PracticeTitleCard';
 import { PracticeTopBar } from '@/practice/PracticeTopBar';
 import { useMidiStatus } from '@/practice/useMidiStatus';
 import { usePracticeSession } from '@/practice/usePracticeSession';
@@ -26,6 +27,8 @@ interface Loaded {
 
 export default function PracticeScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
+  const [song, setSong] = useState<SongRecord | null>(null);
   const [data, setData] = useState<Loaded | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,6 +38,8 @@ export default function PracticeScreen() {
       try {
         const song = await getSong(id);
         if (!song) throw new Error('Song not found');
+        if (cancelled) return;
+        setSong(song); // title card can name the piece before the score is parsed
         const [{ xml, score }, progress] = await Promise.all([openSong(song), getProgress(id)]);
         if (cancelled) return;
         const loop = progress?.loopStart != null && progress.loopEnd != null
@@ -48,16 +53,42 @@ export default function PracticeScreen() {
     return () => { cancelled = true; };
   }, [id]);
 
+  // The title card covers the screen from the first frame (same colour as the
+  // Library curtain) and fades out only once the sheet has actually rendered,
+  // so practice appears finished: sheet, keyboard and controls together.
+  const [cardGone, setCardGone] = useState(false);
+  const cardOpacity = useRef(new Animated.Value(1)).current;
+  const onReady = useCallback(() => {
+    Animated.timing(cardOpacity, { toValue: 0, duration: 350, useNativeDriver: true }).start(({ finished }) => {
+      if (finished) setCardGone(true);
+    });
+  }, [cardOpacity]);
+
+  // Own SafeAreaProvider: this screen is a native modal, and the root provider
+  // under it keeps the presenting screen's (portrait) insets while covered.
   return (
-    <View style={styles.container}>
-      <Stack.Screen options={{ headerShown: false }} />
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-      {data ? <Practice data={data} /> : <Text style={styles.loading}>Loading…</Text>}
-    </View>
+    <SafeAreaProvider>
+      <View style={styles.container}>
+        <Stack.Screen options={{ headerShown: false }} />
+        {error && cardGone ? <Text style={styles.error}>{error}</Text> : null}
+        {data ? <Practice data={data} onReady={onReady} onError={setError} /> : null}
+        {!cardGone ? (
+          <PracticeTitleCard
+            opacity={cardOpacity}
+            title={song?.title}
+            composer={song?.composer}
+            resumeBar={data ? data.startMeasure + 1 : null}
+            totalMeasures={song?.totalMeasures}
+            error={error}
+            onBack={() => router.back()}
+          />
+        ) : null}
+      </View>
+    </SafeAreaProvider>
   );
 }
 
-function Practice({ data }: { data: Loaded }) {
+function Practice({ data, onReady, onError }: { data: Loaded; onReady: () => void; onError: (message: string) => void }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const sheet = useRef<SheetViewHandle>(null);
@@ -114,11 +145,12 @@ function Practice({ data }: { data: Loaded }) {
   const onMessage = useCallback((msg: SheetMessage) => {
     switch (msg.type) {
       case 'ready': setSheetReady(true); break;
-      case 'loaded': setSheetLoaded(true); break;
+      case 'loaded': setSheetLoaded(true); onReady(); break;
       case 'measureTap': onMeasureTap(msg.measureIndex); break;
+      case 'error': onError(msg.message); break;
       default: break;
     }
-  }, [onMeasureTap]);
+  }, [onMeasureTap, onReady, onError]);
 
   // Persist progress on unmount and whenever the measure/settings change.
   const latest = useRef({ measure: cur?.measureIndex ?? 0, handMode, loop });
@@ -191,6 +223,5 @@ function Practice({ data }: { data: Loaded }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   sheet: { flex: 1 },
-  loading: { padding: 16, color: '#777' },
   error: { padding: 16, color: '#b00020' },
 });

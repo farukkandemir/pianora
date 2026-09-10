@@ -9,19 +9,23 @@ import { deleteSong, importSong, ImportError, type SongListItem } from '@/data/s
 import { useSongs } from '@/data/useSongs';
 import { displayComposer } from '@/lib/format';
 import { useTheme } from '@/theme';
-import { Button, Card, Icon, IconButton, Screen, Text } from '@/ui';
+import { Button, Card, Icon, IconButton, Screen, Text, useCurtain } from '@/ui';
 
 export default function LibraryScreen() {
   const router = useRouter();
   const { colors, spacing, radius } = useTheme();
   const { songs, error, refresh } = useSongs();
+  const curtain = useCurtain();
   const [busy, setBusy] = useState(false);
 
   useFocusEffect(useCallback(() => { refresh(); }, [refresh]));
 
-  const open = useCallback((song: SongListItem) => {
-    router.push({ pathname: '/song/[id]', params: { id: song.id } });
-  }, [router]);
+  // Practice opens as a landscape modal; the curtain hides the rotation.
+  const openSong = useCallback(async (id: string) => {
+    await curtain.raise();
+    router.push({ pathname: '/song/[id]', params: { id } });
+  }, [curtain, router]);
+  const open = useCallback((song: SongListItem) => { void openSong(song.id); }, [openSong]);
 
   const onImport = useCallback(async () => {
     setBusy(true);
@@ -30,14 +34,14 @@ export default function LibraryScreen() {
       if (!file) return;
       const song = await importSong(file);
       await refresh();
-      router.push({ pathname: '/song/[id]', params: { id: song.id } });
+      await openSong(song.id);
     } catch (e) {
       const msg = e instanceof ImportError ? e.message : 'Something went wrong while importing.';
       Alert.alert('Could not import', msg);
     } finally {
       setBusy(false);
     }
-  }, [refresh, router]);
+  }, [openSong, refresh]);
 
   const onDelete = useCallback((song: SongListItem) => {
     Alert.alert('Delete piece?', `"${song.title}" and its progress will be removed.`, [

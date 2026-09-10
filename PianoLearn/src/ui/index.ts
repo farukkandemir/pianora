@@ -1,6 +1,7 @@
 export { Button } from './Button';
 export { Card } from './Card';
 export { Chip } from './Chip';
+export { CurtainProvider, useCurtain } from './Curtain';
 export { Icon } from './Icon';
 export type { IconName } from './Icon';
 export { IconButton } from './IconButton';
