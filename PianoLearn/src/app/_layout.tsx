@@ -9,7 +9,7 @@ export default function RootLayout() {
   return (
     <ThemeProvider fontsLoaded={fontsLoaded}>
       <Stack screenOptions={{ orientation: 'portrait' }}>
-        <Stack.Screen name="index" options={{ title: 'Songs' }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="midi-setup" options={{ title: 'MIDI setup' }} />
         <Stack.Screen name="song/[id]" options={{ title: 'Song', orientation: 'landscape' }} />
       </Stack>
