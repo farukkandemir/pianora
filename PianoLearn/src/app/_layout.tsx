@@ -15,9 +15,10 @@ export default function RootLayout() {
 
 /** Below SettingsProvider: the theme takes the hand colours, reconnect takes its switch. */
 function App() {
-  const { settings } = useSettings();
+  const { settings, loaded } = useSettings();
   const fontsLoaded = useAppFonts();
-  useMidiAutoReconnect(settings.autoReconnect);
+  // Wait for the saved switch: firing on the default would reconnect even when it is off.
+  useMidiAutoReconnect(loaded && settings.autoReconnect);
   return (
     <ThemeProvider fontsLoaded={fontsLoaded} hands={{ right: settings.rightHand, left: settings.leftHand }}>
       <CurtainProvider>

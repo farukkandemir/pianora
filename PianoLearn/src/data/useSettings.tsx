@@ -8,6 +8,8 @@ import { DEFAULT_SETTINGS, loadSettings, saveSetting, type Settings } from './se
 
 interface SettingsContextValue {
   settings: Settings;
+  /** False until the saved settings have been read; before that `settings` are the defaults. */
+  loaded: boolean;
   set: <K extends keyof Settings>(key: K, value: Settings[K]) => void;
 }
 
@@ -15,9 +17,10 @@ const SettingsContext = createContext<SettingsContextValue | null>(null);
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    loadSettings().then(setSettings).catch(() => {});
+    loadSettings().then(setSettings).catch(() => {}).finally(() => setLoaded(true));
   }, []);
 
   const set = useCallback(<K extends keyof Settings>(key: K, value: Settings[K]) => {
@@ -25,7 +28,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     saveSetting(key, value).catch(() => {});
   }, []);
 
-  const value = useMemo(() => ({ settings, set }), [settings, set]);
+  const value = useMemo(() => ({ settings, loaded, set }), [settings, loaded, set]);
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;
 }
 
