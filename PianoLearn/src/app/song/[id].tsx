@@ -6,12 +6,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { PianoKeyboard, noteLabel } from '@/components/PianoKeyboard';
+import { PianoKeyboard } from '@/components/PianoKeyboard';
 import { getProgress, getSong, openSong, saveProgress, type SongRecord } from '@/data/songs';
 import type { HandMode, MeasureRange, Score } from '@/engine/model';
-import { PracticeControls, type LoopSelection } from '@/practice/PracticeControls';
 import { PracticeTitleCard } from '@/practice/PracticeTitleCard';
-import { PracticeTopBar } from '@/practice/PracticeTopBar';
+import { PracticeTopBar, type LoopSelection } from '@/practice/PracticeTopBar';
 import { useMidiStatus } from '@/practice/useMidiStatus';
 import { usePracticeSession } from '@/practice/usePracticeSession';
 import { SheetView, type SheetMessage, type SheetViewHandle } from '@/sheet/SheetView';
@@ -171,12 +170,14 @@ function Practice({ data, onReady, onError }: { data: Loaded; onReady: () => voi
   const remainingSet = new Set(session.state.remaining);
   const expectedKeys = cur ? cur.notes.filter((n) => remainingSet.has(n.midi)).map((n) => ({ midi: n.midi, hand: n.hand })) : [];
 
-  const statusText = session.state.finished
-    ? 'Finished! Restart to play again.'
-    : cur
-      ? `Play: ${session.state.remaining.map(noteLabel).join(' + ')}`
-      : 'No notes for this hand selection.';
-  const statusTone = session.state.finished ? 'done' : session.lastResult?.verdict === 'wrong' ? 'wrong' : 'normal';
+  // The keyboard shows what to play (tinted keys) and what went wrong (red);
+  // the header subtitle carries the bar counter and the rare status words.
+  const barNumber = cur ? score.measures[cur.measureIndex].number : '';
+  const pass = cur?.pass && cur.pass > 1 ? ` · ${cur.pass}×` : '';
+  const status = session.state.finished ? ' · Finished, restart to play again' : !cur ? ' · No notes for this hand' : '';
+  const midi = midiSources.length === 0 ? ' · No keyboard' : '';
+  const subtitle = `${data.song.composer ?? 'Unknown composer'} · Bar ${barNumber} of ${score.measures.length}${pass}${status}${midi}`;
+  const cancelLoopPick = () => setLoopSel({ picking: false, start: null });
 
   return (
     <View style={[styles.container, { paddingBottom: insets.bottom }]}>
@@ -184,28 +185,19 @@ function Practice({ data, onReady, onError }: { data: Loaded; onReady: () => voi
         insetLeft={insets.left}
         insetRight={insets.right}
         title={data.song.title}
+        subtitle={subtitle}
         onBack={() => router.back()}
-        status={statusText}
-        statusTone={statusTone}
-        midiName={midiSources[0]?.name ?? null}
-      />
-      <View style={styles.sheet}>
-        <SheetView ref={sheet} onMessage={onMessage} />
-      </View>
-      <PracticeControls
-        insetLeft={insets.left}
-        insetRight={insets.right}
         handMode={handMode}
         onHandMode={setHandMode}
         loop={loop}
         loopSel={loopSel}
-        onStartLoopPick={() => setLoopSel({ picking: true, start: null })}
-        onClearLoop={() => { setLoop(null); setLoopSel({ picking: false, start: null }); }}
+        onLoopPress={() => (loopSel.picking ? cancelLoopPick() : setLoopSel({ picking: true, start: null }))}
+        onClearLoop={() => { setLoop(null); cancelLoopPick(); }}
         onRestart={session.restart}
-        measureNumber={cur ? score.measures[cur.measureIndex].number : ''}
-        totalMeasures={score.measures.length}
-        pass={cur?.pass}
       />
+      <View style={styles.sheet}>
+        <SheetView ref={sheet} onMessage={onMessage} />
+      </View>
       <PianoKeyboard
         range={keyRange}
         expected={expectedKeys}
@@ -221,7 +213,7 @@ function Practice({ data, onReady, onError }: { data: Loaded; onReady: () => voi
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: '#FCFBFD' },
   sheet: { flex: 1 },
   error: { padding: 16, color: '#b00020' },
 });

@@ -98,6 +98,8 @@ export const type = {
   bodyStrong: { fontSize: 15, lineHeight: 22, letterSpacing: 0, weight: 'medium' },
   caption: { fontSize: 13, lineHeight: 18, letterSpacing: 0, weight: 'regular' },
   label: { fontSize: 12, lineHeight: 16, letterSpacing: 0.6, weight: 'semibold' },
+  /** Captions under icon buttons (practice header). Smallest text in the app. */
+  micro: { fontSize: 11, lineHeight: 13, letterSpacing: 0.1, weight: 'semibold' },
 } as const;
 
 export type TypeStyle = keyof typeof type;
