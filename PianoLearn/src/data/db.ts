@@ -5,7 +5,7 @@
 import { openDatabaseAsync, type SQLiteDatabase } from 'expo-sqlite';
 
 const DB_NAME = 'pianolearn.db';
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 
 let dbPromise: Promise<SQLiteDatabase> | undefined;
 
@@ -43,6 +43,15 @@ async function migrate(db: SQLiteDatabase): Promise<void> {
         loop_start INTEGER,
         loop_end INTEGER,
         updated_at INTEGER NOT NULL
+      );
+    `);
+  }
+
+  if (current < 2) {
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS settings (
+        key TEXT PRIMARY KEY NOT NULL,
+        value TEXT NOT NULL
       );
     `);
   }

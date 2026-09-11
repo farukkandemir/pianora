@@ -33,7 +33,7 @@ export const colors = {
   /** Accent tint for badges and selected states. */
   accentTint: '#EFE7F2',
 
-  /** Functional colors. Fixed; shared by keyboard and sheet. */
+  /** Hand colours. Defaults; the user picks from `handPalette` in Settings. */
   rightHand: '#3B6FE0',
   leftHand: '#E8853A',
   correct: '#2FA36B',
@@ -49,6 +49,17 @@ export const colors = {
 } as const;
 
 export type ThemeColors = { [K in keyof typeof colors]: string };
+
+/** Colours a hand can wear. Green and red are kept for correct and wrong keys. */
+export const handPalette = {
+  cobalt: '#3B6FE0',
+  violet: '#7B61C9',
+  rose: '#D9587A',
+  amber: '#E8853A',
+  teal: '#2A9D8F',
+} as const;
+
+export type HandColorKey = keyof typeof handPalette;
 
 /** Spacing scale in points. Web: 4px grid. */
 export const spacing = {
@@ -94,6 +105,8 @@ export const type = {
   /** Section titles inside a screen ("Your pieces"). */
   section: { fontSize: 20, lineHeight: 26, letterSpacing: -0.1, weight: 'semibold' },
   subheading: { fontSize: 17, lineHeight: 22, letterSpacing: 0, weight: 'semibold' },
+  /** Row titles in settings-style lists. */
+  bodyLarge: { fontSize: 17, lineHeight: 22, letterSpacing: 0, weight: 'medium' },
   body: { fontSize: 15, lineHeight: 22, letterSpacing: 0, weight: 'regular' },
   bodyStrong: { fontSize: 15, lineHeight: 22, letterSpacing: 0, weight: 'medium' },
   caption: { fontSize: 13, lineHeight: 18, letterSpacing: 0, weight: 'regular' },

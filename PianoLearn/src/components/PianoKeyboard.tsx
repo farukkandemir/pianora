@@ -7,18 +7,12 @@ import { memo, useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { Hand } from '@/engine/model';
+import { useTheme } from '@/theme';
 
 export interface ExpectedKey {
   midi: number;
   hand: Hand;
 }
-
-/** Hand colors, shared with any other view that marks notes by hand. */
-export const HAND_COLORS: Record<Hand, string> = {
-  right: '#3e8ef7',
-  left: '#f59e0b',
-  unknown: '#3e8ef7',
-};
 
 export interface KeyboardRange {
   /** Inclusive MIDI numbers; both are snapped outward to C and B. */
@@ -54,6 +48,7 @@ export function snapRange(range: KeyboardRange): KeyboardRange {
 export const PianoKeyboard = memo(function PianoKeyboard({
   range, expected, satisfied, wrong, held, onKeyDown, onKeyUp, height = 110,
 }: Props) {
+  const { colors } = useTheme();
   const { low, high } = snapRange(range);
   const whites = useMemo(() => {
     const out: number[] = [];
@@ -71,7 +66,7 @@ export const PianoKeyboard = memo(function PianoKeyboard({
     if (wrongSet.has(midi)) return '#e5484d';
     if (satisfiedSet.has(midi)) return '#30a46c';
     const hand = expectedHand.get(midi);
-    if (hand) return HAND_COLORS[hand];
+    if (hand) return hand === 'left' ? colors.leftHand : colors.rightHand;
     if (heldSet.has(midi)) return black ? '#666' : '#d8d8d8';
     return black ? '#222' : '#fff';
   };

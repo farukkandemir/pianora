@@ -8,6 +8,7 @@ import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-cont
 
 import { PianoKeyboard } from '@/components/PianoKeyboard';
 import { getProgress, getSong, openSong, saveProgress, type SongRecord } from '@/data/songs';
+import { useSettings } from '@/data/useSettings';
 import type { HandMode, MeasureRange, Score } from '@/engine/model';
 import { PracticeTitleCard } from '@/practice/PracticeTitleCard';
 import { PracticeTopBar } from '@/practice/PracticeTopBar';
@@ -95,6 +96,7 @@ function Practice({ data, onReady, onError }: { data: Loaded; onReady: () => voi
   const [handMode, setHandMode] = useState<HandMode>(data.handMode);
   const [loop, setLoop] = useState<MeasureRange | null>(data.loop);
   const midiSources = useMidiStatus();
+  const { settings } = useSettings();
 
   const session = usePracticeSession(data.score, { handMode, loop }, data.startMeasure);
   const { score } = data;
@@ -187,16 +189,18 @@ function Practice({ data, onReady, onError }: { data: Loaded; onReady: () => voi
       <View style={styles.sheet}>
         <SheetView ref={sheet} onMessage={onMessage} />
       </View>
-      <PianoKeyboard
-        range={keyRange}
-        expected={expectedKeys}
-        satisfied={session.state.satisfied}
-        wrong={session.state.wrongHeld}
-        held={session.state.held}
-        onKeyDown={session.noteOn}
-        onKeyUp={session.noteOff}
-        height={84}
-      />
+      {settings.showKeyboard ? (
+        <PianoKeyboard
+          range={keyRange}
+          expected={expectedKeys}
+          satisfied={session.state.satisfied}
+          wrong={session.state.wrongHeld}
+          held={session.state.held}
+          onKeyDown={session.noteOn}
+          onKeyUp={session.noteOff}
+          height={84}
+        />
+      ) : null}
     </View>
   );
 }

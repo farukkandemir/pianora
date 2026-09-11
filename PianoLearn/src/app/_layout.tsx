@@ -1,14 +1,25 @@
 import { Stack } from 'expo-router';
 
+import { SettingsProvider, useSettings } from '@/data/useSettings';
 import { useMidiAutoReconnect } from '@/practice/useMidiAutoReconnect';
 import { ThemeProvider, useAppFonts } from '@/theme';
 import { CurtainProvider } from '@/ui';
 
 export default function RootLayout() {
-  useMidiAutoReconnect();
-  const fontsLoaded = useAppFonts();
   return (
-    <ThemeProvider fontsLoaded={fontsLoaded}>
+    <SettingsProvider>
+      <App />
+    </SettingsProvider>
+  );
+}
+
+/** Below SettingsProvider: the theme takes the hand colours, reconnect takes its switch. */
+function App() {
+  const { settings } = useSettings();
+  const fontsLoaded = useAppFonts();
+  useMidiAutoReconnect(settings.autoReconnect);
+  return (
+    <ThemeProvider fontsLoaded={fontsLoaded} hands={{ right: settings.rightHand, left: settings.leftHand }}>
       <CurtainProvider>
         <Stack screenOptions={{ orientation: 'portrait' }}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
