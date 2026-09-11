@@ -1,11 +1,11 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 import { Alert, FlatList, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { ContinueCard } from '@/components/library/ContinueCard';
 import { SongArt } from '@/components/library/SongArt';
-import { pickSongFile } from '@/data/files';
-import { deleteSong, importSong, ImportError, type SongListItem } from '@/data/songs';
+import { deleteSong, type SongListItem } from '@/data/songs';
+import { useImportSong } from '@/data/useImportSong';
 import { useSongs } from '@/data/useSongs';
 import { displayComposer } from '@/lib/format';
 import { useTheme } from '@/theme';
@@ -21,7 +21,7 @@ export default function LibraryScreen() {
   const thumb = Math.round(Math.min(64, Math.max(56, width * 0.145)));
   const { songs, error, refresh } = useSongs();
   const curtain = useCurtain();
-  const [busy, setBusy] = useState(false);
+  const { importFromPicker, busy } = useImportSong();
 
   useFocusEffect(useCallback(() => { refresh(); }, [refresh]));
 
@@ -32,21 +32,13 @@ export default function LibraryScreen() {
   }, [curtain, router]);
   const open = useCallback((song: SongListItem) => { void openSong(song.id); }, [openSong]);
 
+  // Empty library: import right here. Otherwise the "+" opens Add music.
   const onImport = useCallback(async () => {
-    setBusy(true);
-    try {
-      const file = await pickSongFile();
-      if (!file) return;
-      const song = await importSong(file);
-      await refresh();
-      await openSong(song.id);
-    } catch (e) {
-      const msg = e instanceof ImportError ? e.message : 'Something went wrong while importing.';
-      Alert.alert('Could not import', msg);
-    } finally {
-      setBusy(false);
-    }
-  }, [openSong, refresh]);
+    const song = await importFromPicker();
+    if (!song) return;
+    await refresh();
+    await openSong(song.id);
+  }, [importFromPicker, openSong, refresh]);
 
   const onDelete = useCallback((song: SongListItem) => {
     Alert.alert('Delete piece?', `"${song.title}" and its progress will be removed.`, [
@@ -70,8 +62,7 @@ export default function LibraryScreen() {
         variant="accent"
         size={42}
         accessibilityLabel="Add music"
-        onPress={onImport}
-        disabled={busy}
+        onPress={() => router.push('/add-music')}
       />
     </View>
   );
