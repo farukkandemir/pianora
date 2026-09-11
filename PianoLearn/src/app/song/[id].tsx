@@ -10,7 +10,7 @@ import { PianoKeyboard } from '@/components/PianoKeyboard';
 import { getProgress, getSong, openSong, saveProgress, type SongRecord } from '@/data/songs';
 import type { HandMode, MeasureRange, Score } from '@/engine/model';
 import { PracticeTitleCard } from '@/practice/PracticeTitleCard';
-import { PracticeTopBar, type LoopSelection } from '@/practice/PracticeTopBar';
+import { PracticeTopBar } from '@/practice/PracticeTopBar';
 import { useMidiStatus } from '@/practice/useMidiStatus';
 import { usePracticeSession } from '@/practice/usePracticeSession';
 import { SheetView, type SheetMessage, type SheetViewHandle } from '@/sheet/SheetView';
@@ -94,7 +94,6 @@ function Practice({ data, onReady, onError }: { data: Loaded; onReady: () => voi
   const [sheetReady, setSheetReady] = useState(false);
   const [handMode, setHandMode] = useState<HandMode>(data.handMode);
   const [loop, setLoop] = useState<MeasureRange | null>(data.loop);
-  const [loopSel, setLoopSel] = useState<LoopSelection>({ picking: false, start: null });
   const midiSources = useMidiStatus();
 
   const session = usePracticeSession(data.score, { handMode, loop }, data.startMeasure);
@@ -115,7 +114,7 @@ function Practice({ data, onReady, onError }: { data: Loaded; onReady: () => voi
   const [sheetLoaded, setSheetLoaded] = useState(false);
   useEffect(() => {
     if (!sheetLoaded) return;
-    sheet.current?.highlightRange(loop?.start ?? null, loop?.end ?? null);
+    sheet.current?.setLoop(loop);
   }, [loop, sheetLoaded]);
 
   // Move the cursor whenever the current event changes.
@@ -126,30 +125,23 @@ function Practice({ data, onReady, onError }: { data: Loaded; onReady: () => voi
     sheet.current?.setCursor(cur.measureIndex, cur.startBeat - m.startBeat);
   }, [cur, score, sheetLoaded]);
 
-  const onMeasureTap = useCallback((measureIndex: number) => {
-    if (loopSel.picking) {
-      if (loopSel.start === null) {
-        setLoopSel({ picking: true, start: measureIndex });
-      } else {
-        const a = Math.min(loopSel.start, measureIndex);
-        const b = Math.max(loopSel.start, measureIndex);
-        setLoop({ start: a, end: b });
-        setLoopSel({ picking: false, start: null });
-      }
-      return;
-    }
-    session.jumpToMeasure(measureIndex);
-  }, [loopSel, session]);
-
   const onMessage = useCallback((msg: SheetMessage) => {
     switch (msg.type) {
       case 'ready': setSheetReady(true); break;
       case 'loaded': setSheetLoaded(true); onReady(); break;
-      case 'measureTap': onMeasureTap(msg.measureIndex); break;
+      case 'measureTap': session.jumpToMeasure(msg.measureIndex); break;
+      case 'loop': setLoop({ start: msg.start, end: msg.end }); break;
       case 'error': onError(msg.message); break;
       default: break;
     }
-  }, [onMeasureTap, onReady, onError]);
+  }, [session, onReady, onError]);
+
+  // Loop starts as the current bar and the next; the score's grips take it from there.
+  const toggleLoop = () => {
+    if (loop) { setLoop(null); return; }
+    const start = cur?.measureIndex ?? 0;
+    setLoop({ start, end: Math.min(start + 1, score.measures.length - 1) });
+  };
 
   // Persist progress on unmount and whenever the measure/settings change.
   const latest = useRef({ measure: cur?.measureIndex ?? 0, handMode, loop });
@@ -177,7 +169,6 @@ function Practice({ data, onReady, onError }: { data: Loaded; onReady: () => voi
   const status = session.state.finished ? ' · Finished, restart to play again' : !cur ? ' · No notes for this hand' : '';
   const midi = midiSources.length === 0 ? ' · No keyboard' : '';
   const subtitle = `${data.song.composer ?? 'Unknown composer'} · Bar ${barNumber} of ${score.measures.length}${pass}${status}${midi}`;
-  const cancelLoopPick = () => setLoopSel({ picking: false, start: null });
 
   return (
     <View style={[styles.container, { paddingBottom: insets.bottom }]}>
@@ -189,10 +180,8 @@ function Practice({ data, onReady, onError }: { data: Loaded; onReady: () => voi
         onBack={() => router.back()}
         handMode={handMode}
         onHandMode={setHandMode}
-        loop={loop}
-        loopSel={loopSel}
-        onLoopPress={() => (loopSel.picking ? cancelLoopPick() : setLoopSel({ picking: true, start: null }))}
-        onClearLoop={() => { setLoop(null); cancelLoopPick(); }}
+        loopLabel={loop ? `${score.measures[loop.start].number}–${score.measures[loop.end].number}` : null}
+        onToggleLoop={toggleLoop}
         onRestart={session.restart}
       />
       <View style={styles.sheet}>

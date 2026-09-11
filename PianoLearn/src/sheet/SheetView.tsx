@@ -2,6 +2,8 @@ import { forwardRef, useCallback, useImperativeHandle, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 
+import type { MeasureRange } from '@/engine/model';
+
 import { SHEET_VIEWER_HTML } from './viewerHtml.generated';
 
 export interface SheetViewHandle {
@@ -10,7 +12,8 @@ export interface SheetViewHandle {
   setCursor(measureIndex: number, offsetQuarters: number): void;
   next(): void;
   setZoom(zoom: number): void;
-  highlightRange(start: number | null, end: number | null): void;
+  /** Show the loop on the score, with draggable edges; null hides it. */
+  setLoop(range: MeasureRange | null): void;
   /** Keep the start of the music clear of the camera island. */
   setPadding(left: number, right: number): void;
 }
@@ -20,6 +23,8 @@ export type SheetMessage =
   | { type: 'loaded'; measures: number }
   | { type: 'cursor'; measureIndex: number; rect: { top: number; left: number; height: number } | null }
   | { type: 'measureTap'; measureIndex: number }
+  /** The user moved a loop edge or tapped a bar outside the loop. */
+  | { type: 'loop'; start: number; end: number }
   | { type: 'error'; message: string };
 
 interface Props {
@@ -40,7 +45,7 @@ export const SheetView = forwardRef<SheetViewHandle, Props>(function SheetView({
     setCursor: (m, off) => call('setCursor', m, off),
     next: () => call('next'),
     setZoom: (z) => call('setZoom', z),
-    highlightRange: (s, e) => call('highlightRange', s, e),
+    setLoop: (range) => call('setLoop', range),
     setPadding: (l, r) => call('setPadding', l, r),
   }), [call]);
 

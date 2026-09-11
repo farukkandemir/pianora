@@ -10,7 +10,16 @@
   /* Ribbon: one horizontal staff line; page scrolls sideways. */
   #sheet { display: inline-block; vertical-align: top; padding: 0 var(--pad-right, 40vw) 0 var(--pad-left, 24px); }
   #err { color: #b00020; font: 14px -apple-system, sans-serif; padding: 12px; white-space: pre-wrap; }
-  .loop-hl { fill: rgba(255, 200, 0, 0.18); }
+  /* Loop overlay: the bars outside the loop fade, the loop keeps two plum
+     edges with a grip under each. Sizes that must stay constant on screen
+     are set inline, scaled by the SVG's user-unit ratio. */
+  .loop-dim { fill: rgba(252, 251, 253, 0.62); }
+  .loop-edge { fill: #6A4C7C; }
+  .loop-grip { touch-action: none; cursor: ew-resize; }
+  .loop-grip rect { fill: #6A4C7C; }
+  .loop-grip path { fill: none; stroke: rgba(255, 255, 255, 0.85); stroke-linecap: round; }
+  .loop-label rect { fill: #1E2433; }
+  .loop-label text { fill: #fff; font-family: -apple-system, sans-serif; font-weight: 600; text-anchor: middle; }
 </style>
 <!--OSMD-->
 </head>
@@ -28,7 +37,7 @@
   var loaded = false;
   var unitPx = 10; // OSMD units -> px at zoom 1
   var lastCursor = null;   // { measureIndex, offsetQuarters }
-  var lastRange = null;    // { start, end }
+  var loop = null;         // { start, end }: 0-based measure indices, inclusive
   var lastWidth = window.innerWidth;
   var resizeTimer = null;
 
@@ -61,32 +70,165 @@
     return osmd;
   }
 
-  function measureBoxes() {
-    // One box per measure (union across staves), in CSS px relative to the SVG.
+  // One column per measure, { x, w } in CSS px relative to the SVG: the union
+  // of the measure's staves. The score is a single system, so a measure is a
+  // full-height column and taps are resolved on x alone.
+  function measureColumns() {
     var out = [];
     if (!osmd || !osmd.GraphicSheet) return out;
     var list = osmd.GraphicSheet.MeasureList;
     var z = osmd.Zoom || 1;
     for (var i = 0; i < list.length; i++) {
-      var staves = list[i];
-      var box = null;
-      for (var s = 0; s < staves.length; s++) {
-        var gm = staves[s];
+      var col = null;
+      for (var s = 0; s < list[i].length; s++) {
+        var gm = list[i][s];
         if (!gm || !gm.PositionAndShape) continue;
-        var p = gm.PositionAndShape.AbsolutePosition;
-        var sz = gm.PositionAndShape.Size;
-        var b = { x: p.x * unitPx * z, y: p.y * unitPx * z, w: sz.width * unitPx * z, h: sz.height * unitPx * z };
-        if (!box) box = b;
+        var x = gm.PositionAndShape.AbsolutePosition.x * unitPx * z;
+        var right = x + gm.PositionAndShape.Size.width * unitPx * z;
+        if (!col) col = { x: x, w: right - x };
         else {
-          var x2 = Math.max(box.x + box.w, b.x + b.w), y2 = Math.max(box.y + box.h, b.y + b.h);
-          box.x = Math.min(box.x, b.x); box.y = Math.min(box.y, b.y);
-          box.w = x2 - box.x; box.h = y2 - box.y;
+          var r = Math.max(col.x + col.w, right);
+          col.x = Math.min(col.x, x);
+          col.w = r - col.x;
         }
       }
-      out.push(box);
+      out.push(col);
     }
     return out;
   }
+
+  function columnAt(cols, x) {
+    for (var i = 0; i < cols.length; i++) {
+      if (cols[i] && x >= cols[i].x && x <= cols[i].x + cols[i].w) return i;
+    }
+    return -1;
+  }
+
+  function measureNumber(i) {
+    var m = osmd.Sheet.SourceMeasures[i];
+    return m && m.MeasureNumber != null ? m.MeasureNumber : i + 1;
+  }
+
+  // ---- Loop overlay ------------------------------------------------------
+  // Drawn into the score's SVG so it scrolls with the music. The page owns
+  // the gesture; the app owns the loop and is told the result.
+  var SVG_NS = 'http://www.w3.org/2000/svg';
+  var GRIP = { w: 32, h: 34, gap: 6, radius: 10 };
+
+  function svgEl(name, attrs, parent) {
+    var e = document.createElementNS(SVG_NS, name);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    parent.appendChild(e);
+    return e;
+  }
+
+  // OSMD zooms through the viewBox, so user units are not CSS px.
+  function userPerPx(svg) {
+    var vb = svg.viewBox.baseVal;
+    return vb && vb.height ? vb.height / svg.height.baseVal.value : 1;
+  }
+
+  // The overlay is built once and repositioned in place: replacing the grip
+  // under a finger would end its touch sequence on iOS.
+  var overlay = null;
+
+  function buildOverlay(svg) {
+    var g = svgEl('g', { class: 'loop' }, svg);
+    var o = { g: g, dim: {}, edge: {}, grip: {}, gripRect: {}, gripLines: {} };
+    ['start', 'end'].forEach(function (side) {
+      o.dim[side] = svgEl('rect', { class: 'loop-dim', y: 0 }, g);
+      o.edge[side] = svgEl('rect', { class: 'loop-edge', y: 0 }, g);
+      o.grip[side] = svgEl('g', { class: 'loop-grip', 'data-side': side }, g);
+      o.gripRect[side] = svgEl('rect', {}, o.grip[side]);
+      o.gripLines[side] = svgEl('path', {}, o.grip[side]);
+    });
+    o.label = svgEl('g', { class: 'loop-label' }, g);
+    o.labelRect = svgEl('rect', {}, o.label);
+    o.labelText = svgEl('text', {}, o.label);
+    return o;
+  }
+
+  function setAttrs(e, attrs) {
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+  }
+
+  function drawLoop(activeSide) {
+    var svg = container.querySelector('svg');
+    if (!svg) return;
+    if (overlay && (!loop || overlay.g.parentNode !== svg)) {
+      overlay.g.remove();
+      overlay = null;
+    }
+    if (!loop) return;
+    var cols = measureColumns();
+    var a = cols[loop.start], b = cols[loop.end];
+    if (!a || !b) return;
+    if (!overlay) overlay = buildOverlay(svg);
+    var k = userPerPx(svg);
+    var W = svg.getBoundingClientRect().width * k, H = svg.getBoundingClientRect().height * k;
+    var x = { start: a.x * k, end: (b.x + b.w) * k };
+    setAttrs(overlay.dim.start, { x: 0, width: x.start, height: H });
+    setAttrs(overlay.dim.end, { x: x.end, width: Math.max(0, W - x.end), height: H });
+    var w = GRIP.w * k, h = GRIP.h * k, y = H - h - GRIP.gap * k;
+    ['start', 'end'].forEach(function (side) {
+      setAttrs(overlay.edge[side], { x: x[side] - k, width: 2 * k, height: H });
+      setAttrs(overlay.gripRect[side], { x: x[side] - w / 2, y: y, width: w, height: h, rx: GRIP.radius * k });
+      var top = y + h * 0.3, len = h * 0.4;
+      setAttrs(overlay.gripLines[side], { d: 'M' + (x[side] - 3 * k) + ' ' + top + 'v' + len + 'M' + (x[side] + 3 * k) + ' ' + top + 'v' + len, 'stroke-width': 2.5 * k });
+    });
+    overlay.label.style.display = activeSide ? '' : 'none';
+    if (!activeSide) return;
+    var text = 'to bar ' + measureNumber(activeSide === 'start' ? loop.start : loop.end);
+    var lw = (text.length * 7 + 20) * k, lh = 26 * k, ly = y - lh - 8 * k;
+    setAttrs(overlay.labelRect, { x: x[activeSide] - lw / 2, y: ly, width: lw, height: lh, rx: lh / 2 });
+    setAttrs(overlay.labelText, { x: x[activeSide], y: ly + lh * 0.68, 'font-size': 12 * k });
+    overlay.labelText.textContent = text;
+  }
+
+  // Snap one edge to the nearest measure boundary at CSS px x, never crossing the other edge.
+  function withEdgeAt(range, side, x) {
+    var cols = measureColumns();
+    var best = -1, bestDist = Infinity;
+    for (var i = 0; i < cols.length; i++) {
+      if (!cols[i]) continue;
+      var edge = side === 'start' ? cols[i].x : cols[i].x + cols[i].w;
+      if (Math.abs(edge - x) < bestDist) { bestDist = Math.abs(edge - x); best = i; }
+    }
+    if (best < 0) return range;
+    return side === 'start'
+      ? { start: Math.min(best, range.end), end: range.end }
+      : { start: range.start, end: Math.max(best, range.start) };
+  }
+
+  var drag = null; // side of the grip being dragged
+
+  container.addEventListener('touchstart', function (ev) {
+    var grip = loop && ev.target.closest && ev.target.closest('.loop-grip');
+    if (!grip) return;
+    ev.preventDefault();
+    drag = grip.getAttribute('data-side');
+    drawLoop(drag);
+  }, { passive: false });
+
+  container.addEventListener('touchmove', function (ev) {
+    if (!drag) return;
+    ev.preventDefault();
+    var svg = container.querySelector('svg');
+    var x = ev.touches[0].clientX - svg.getBoundingClientRect().left;
+    var next = withEdgeAt(loop, drag, x);
+    if (next.start === loop.start && next.end === loop.end) return;
+    loop = next;
+    drawLoop(drag);
+  }, { passive: false });
+
+  function endDrag() {
+    if (!drag) return;
+    drag = null;
+    drawLoop();
+    post({ type: 'loop', start: loop.start, end: loop.end });
+  }
+  container.addEventListener('touchend', endDrag);
+  container.addEventListener('touchcancel', endDrag);
 
   // Scale the single system so it fills the WebView height.
   function fitZoom() {
@@ -178,24 +320,11 @@
       post({ type: 'cursor', measureIndex: osmd.cursor.iterator.CurrentMeasureIndex, rect: cursorRect() });
     },
 
-    highlightRange: function (start, end) {
+    // Show the loop the app holds; null hides it.
+    setLoop: function (range) {
       if (!osmd || !loaded) return;
-      lastRange = (start == null || end == null) ? null : { start: start, end: end };
-      var svg = container.querySelector('svg');
-      if (!svg) return;
-      var old = svg.querySelectorAll('.loop-hl');
-      for (var i = 0; i < old.length; i++) old[i].remove();
-      if (start == null || end == null) return;
-      var boxes = measureBoxes();
-      for (var m = start; m <= end && m < boxes.length; m++) {
-        var b = boxes[m];
-        if (!b) continue;
-        var r = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        r.setAttribute('class', 'loop-hl');
-        r.setAttribute('x', b.x); r.setAttribute('y', b.y - 6);
-        r.setAttribute('width', b.w); r.setAttribute('height', b.h + 12);
-        svg.insertBefore(r, svg.firstChild);
-      }
+      loop = range;
+      drawLoop();
     }
   };
 
@@ -205,7 +334,7 @@
     fitZoom();
     osmd.cursor.show();
     if (lastCursor) window.api.setCursor(lastCursor.measureIndex, lastCursor.offsetQuarters);
-    if (lastRange) window.api.highlightRange(lastRange.start, lastRange.end);
+    drawLoop();
   }
 
   var lastHeight = window.innerHeight;
@@ -217,21 +346,22 @@
     resizeTimer = setTimeout(relayout, 150);
   });
 
+  // Tap a bar: inside the loop (or with no loop) it is a jump; outside the
+  // loop it pulls the nearest edge out to that bar.
   container.addEventListener('click', function (ev) {
     if (!osmd || !loaded) return;
+    if (ev.target.closest && ev.target.closest('.loop-grip')) return;
     var svg = container.querySelector('svg');
     if (!svg) return;
-    var sr = svg.getBoundingClientRect();
-    var x = ev.clientX - sr.left, y = ev.clientY - sr.top;
-    var boxes = measureBoxes();
-    for (var i = 0; i < boxes.length; i++) {
-      var b = boxes[i];
-      if (!b) continue;
-      if (x >= b.x && x <= b.x + b.w && y >= b.y - 10 && y <= b.y + b.h + 10) {
-        post({ type: 'measureTap', measureIndex: i });
-        return;
-      }
+    var i = columnAt(measureColumns(), ev.clientX - svg.getBoundingClientRect().left);
+    if (i < 0) return;
+    if (loop && (i < loop.start || i > loop.end)) {
+      loop = i < loop.start ? { start: i, end: loop.end } : { start: loop.start, end: i };
+      drawLoop();
+      post({ type: 'loop', start: loop.start, end: loop.end });
+      return;
     }
+    post({ type: 'measureTap', measureIndex: i });
   });
 
   post({ type: 'ready' });
