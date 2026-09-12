@@ -261,12 +261,20 @@
     return { top: el.offsetTop, left: el.offsetLeft, height: el.offsetHeight };
   }
 
+  // Keep the cursor in the reading zone. No scroll while it sits between a
+  // third and two thirds of the screen; a smooth glide when it passes two
+  // thirds; an instant jump when the target is more than a screen away
+  // (repeats, restart, a tap on a far bar), so a jump never animates through
+  // the whole piece.
   function scrollCursorIntoView(instant) {
     var r = cursorRect();
     if (!r) return;
     var vw = window.innerWidth;
+    var x = r.left - window.scrollX;
+    if (!instant && x >= vw * 0.33 && x <= vw * 0.66) return;
     var target = Math.max(0, r.left - vw * 0.33);
-    window.scrollTo({ left: target, top: 0, behavior: instant ? 'auto' : 'smooth' });
+    var far = Math.abs(target - window.scrollX) > vw;
+    window.scrollTo({ left: target, top: 0, behavior: instant || far ? 'auto' : 'smooth' });
   }
 
   window.api = {
