@@ -5,13 +5,14 @@
  * icon segmented control, then Loop and Restart as icon buttons with a
  * one-word caption. All practice controls live here; there is no bottom bar.
  *
- * Wait Mode is deliberately absent: the engine has no play-along mode yet,
- * so a toggle would have nothing to switch off. It goes in once that exists.
+ * Listen plays the piece through the piano sampler; the button shows the
+ * download percentage the first time, then "Listen" / "Stop".
  */
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import type { HandMode } from '@/engine/model';
+import type { ListenState } from '@/practice/useListen';
 import { useTheme } from '@/theme';
 import { Icon, Segmented, Text, type IconName } from '@/ui';
 
@@ -28,6 +29,8 @@ interface Props {
   loopLabel: string | null;
   onToggleLoop: () => void;
   onRestart: () => void;
+  listen: ListenState;
+  onToggleListen: () => void;
 }
 
 export const TOP_BAR_HEIGHT = 60;
@@ -65,8 +68,25 @@ export function PracticeTopBar(p: Props) {
         accessibilityLabel={p.loopLabel ? 'Turn loop off' : 'Loop the current bars'}
       />
       <BarAction icon="rotate-ccw" label="Restart" onPress={p.onRestart} accessibilityLabel="Restart from the first bar" />
+      <BarAction
+        icon={p.listen.kind === 'playing' ? 'square' : 'headphones'}
+        label={listenLabel(p.listen)}
+        active={p.listen.kind !== 'idle' && p.listen.kind !== 'error'}
+        onPress={p.onToggleListen}
+        accessibilityLabel={p.listen.kind === 'playing' ? 'Stop listening' : 'Listen to the piece'}
+      />
     </View>
   );
+}
+
+function listenLabel(s: ListenState): string {
+  switch (s.kind) {
+    case 'downloading': return `${Math.round(s.progress * 100)}%`;
+    case 'loading': return 'Loading';
+    case 'playing': return 'Stop';
+    case 'error': return 'Retry';
+    default: return 'Listen';
+  }
 }
 
 /** Outline hand glyph in the hand's colour, the same colour the keyboard uses. */

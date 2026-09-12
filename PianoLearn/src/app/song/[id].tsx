@@ -12,8 +12,10 @@ import { useSettings } from '@/data/useSettings';
 import type { HandMode, MeasureRange, Score } from '@/engine/model';
 import { PracticeTitleCard } from '@/practice/PracticeTitleCard';
 import { PracticeTopBar } from '@/practice/PracticeTopBar';
+import { useListen } from '@/practice/useListen';
 import { useMidiStatus } from '@/practice/useMidiStatus';
 import { usePracticeSession } from '@/practice/usePracticeSession';
+import { positionAtMs } from '@/engine/timeline';
 import { SheetView, type SheetMessage, type SheetViewHandle } from '@/sheet/SheetView';
 
 interface Loaded {
@@ -119,13 +121,22 @@ function Practice({ data, onReady, onError }: { data: Loaded; onReady: () => voi
     sheet.current?.setLoop(loop);
   }, [loop, sheetLoaded]);
 
-  // Move the cursor whenever the current event changes.
+  // Listen: the sampler reports its position ~30x a second; the cursor follows it.
+  const listen = useListen(score, (ms) => {
+    const pos = positionAtMs(listenTimelineRef.current, ms);
+    if (pos) sheet.current?.setCursor(pos.measureIndex, pos.beatInMeasure);
+  });
+  const listenTimelineRef = useRef(listen.timeline);
+  listenTimelineRef.current = listen.timeline;
+  const listening = listen.state.kind === 'playing';
+
+  // Move the cursor whenever the current event changes (and back to it after Listen ends).
   const cur = session.current;
   useEffect(() => {
-    if (!sheetLoaded || !cur) return;
+    if (!sheetLoaded || !cur || listening) return;
     const m = score.measures[cur.measureIndex];
     sheet.current?.setCursor(cur.measureIndex, cur.startBeat - m.startBeat);
-  }, [cur, score, sheetLoaded]);
+  }, [cur, score, sheetLoaded, listening]);
 
   const onMessage = useCallback((msg: SheetMessage) => {
     switch (msg.type) {
@@ -179,12 +190,14 @@ function Practice({ data, onReady, onError }: { data: Loaded; onReady: () => voi
         insetRight={insets.right}
         title={data.song.title}
         subtitle={subtitle}
-        onBack={() => router.back()}
+        onBack={() => { listen.stop(); router.back(); }}
         handMode={handMode}
         onHandMode={setHandMode}
         loopLabel={loop ? `${score.measures[loop.start].number}–${score.measures[loop.end].number}` : null}
         onToggleLoop={toggleLoop}
         onRestart={session.restart}
+        listen={listen.state}
+        onToggleListen={listen.toggle}
       />
       <View style={styles.sheet}>
         <SheetView ref={sheet} onMessage={onMessage} />
