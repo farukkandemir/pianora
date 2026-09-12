@@ -5,7 +5,7 @@ import { Alert, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-
 import { ContinueCard } from '@/components/library/ContinueCard';
 import { SheetIllustration } from '@/components/library/SheetIllustration';
 import { SongTile } from '@/components/library/SongTile';
-import { deleteSong, renameSong, type SongListItem } from '@/data/songs';
+import { deleteSong, isStarted, renameSong, type SongListItem } from '@/data/songs';
 import { useImportSong } from '@/data/useImportSong';
 import { useSongs } from '@/data/useSongs';
 import { useTheme } from '@/theme';
@@ -74,7 +74,7 @@ export default function LibraryScreen() {
 
   // Hero = most recently practiced piece.
   const hero = useMemo(() => {
-    const practiced = (songs ?? []).filter((s) => s.progress).sort((a, b) => b.progress!.updatedAt - a.progress!.updatedAt);
+    const practiced = (songs ?? []).filter(isStarted).sort((a, b) => b.progress!.updatedAt - a.progress!.updatedAt);
     return practiced[0] ?? null;
   }, [songs]);
 
@@ -87,7 +87,7 @@ export default function LibraryScreen() {
       const q = normalize(query.trim());
       list = list.filter((s) => normalize(s.title).includes(q) || normalize(s.composer ?? '').includes(q));
     }
-    if (filter === 'inProgress') list = list.filter((s) => s.progress);
+    if (filter === 'inProgress') list = list.filter(isStarted);
     if (filter === 'az') list = [...list].sort((a, b) => a.title.localeCompare(b.title));
     return list;
   }, [songs, query, searching, filter]);
@@ -166,7 +166,7 @@ export default function LibraryScreen() {
       </View>
       {visible.length === 0 ? (
         <Text tone="muted" style={{ paddingHorizontal: spacing.screen }}>
-          {searching ? `Nothing matches “${query.trim()}”.` : 'Nothing in progress yet. Open a piece to start.'}
+          {searching ? `Nothing matches “${query.trim()}”.` : 'Nothing in progress yet. Play past the first bar of a piece and it shows up here.'}
         </Text>
       ) : null}
       <View style={[styles.grid, { paddingHorizontal: spacing.screen, gap: spacing.lg }]}>

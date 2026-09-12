@@ -36,6 +36,15 @@ export interface SongListItem extends SongRecord {
   progress: SongProgress | null;
 }
 
+/**
+ * A piece counts as started once the player has moved past bar 1. Merely
+ * opening a piece writes a progress row at bar 1, and that must not make it
+ * "in progress" or the Continue hero.
+ */
+export function isStarted(song: SongListItem): boolean {
+  return !!song.progress && song.progress.lastMeasure > 0;
+}
+
 interface SongRow {
   id: string;
   title: string;

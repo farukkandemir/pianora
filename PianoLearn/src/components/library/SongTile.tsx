@@ -2,7 +2,7 @@ import { Button, ContextMenu, Host, VStack } from '@expo/ui/swift-ui';
 import { clipShape, frame } from '@expo/ui/swift-ui/modifiers';
 import { Pressable, View } from 'react-native';
 
-import type { SongListItem } from '@/data/songs';
+import { isStarted, type SongListItem } from '@/data/songs';
 import { composerSurname } from '@/lib/format';
 import { useTheme } from '@/theme';
 import { Text } from '@/ui';
@@ -27,7 +27,7 @@ export type SongTileProps = {
  */
 export function SongTile({ song, width, onOpen, onRename, onDelete }: SongTileProps) {
   const { radius, spacing } = useTheme();
-  const status = song.progress ? `Bar ${song.progress.lastMeasure + 1} of ${song.totalMeasures}` : 'Not started';
+  const status = isStarted(song) ? `Bar ${song.progress!.lastMeasure + 1} of ${song.totalMeasures}` : 'Not started';
   return (
     <View style={{ width }}>
       {/* Only the artwork lives in the SwiftUI host: what you press is what lifts,
