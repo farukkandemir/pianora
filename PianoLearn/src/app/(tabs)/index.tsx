@@ -3,6 +3,7 @@ import { useCallback, useMemo } from 'react';
 import { Alert, FlatList, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { ContinueCard } from '@/components/library/ContinueCard';
+import { SheetIllustration } from '@/components/library/SheetIllustration';
 import { SongArt } from '@/components/library/SongArt';
 import { deleteSong, type SongListItem } from '@/data/songs';
 import { useImportSong } from '@/data/useImportSong';
@@ -57,13 +58,16 @@ export default function LibraryScreen() {
   const header = (
     <View style={[styles.header, { paddingBottom: spacing.xxl }]}>
       <Text variant="title">Library</Text>
-      <IconButton
-        icon={<Icon name="plus" size={20} tone="onInk" />}
-        variant="accent"
-        size={42}
-        accessibilityLabel="Add music"
-        onPress={() => router.push('/add-music')}
-      />
+      {/* No "+" on an empty library: the screen itself is the import prompt. */}
+      {songs && songs.length > 0 ? (
+        <IconButton
+          icon={<Icon name="plus" size={20} tone="onInk" />}
+          variant="accent"
+          size={42}
+          accessibilityLabel="Add music"
+          onPress={() => router.push('/add-music')}
+        />
+      ) : null}
     </View>
   );
 
@@ -76,10 +80,18 @@ export default function LibraryScreen() {
       <Screen>
         {header}
         <View style={[styles.empty, { gap: spacing.md, paddingTop: spacing.xxxl }]}>
-          <SongArt songId="empty" height={220} radius={radius.xl} />
+          <SheetIllustration />
           <Text variant="heading" style={{ paddingTop: spacing.md }}>Bring your own sheet music</Text>
           <Text tone="muted">Any MusicXML file works. Export one from MuseScore, Sibelius or Finale, or find free scores on MuseScore and IMSLP.</Text>
-          <Button label="Choose a file" variant="accent" block onPress={onImport} disabled={busy} style={{ marginTop: spacing.sm }} />
+          <Button
+            label="Choose a file"
+            variant="accent"
+            block
+            iconLeft={<Icon name="file" size={18} tone="onInk" />}
+            onPress={onImport}
+            disabled={busy}
+            style={{ marginTop: spacing.sm }}
+          />
           <Text variant="caption" tone="faint" center>.musicxml · .xml · .mxl</Text>
         </View>
         {error ? <Text tone="accent">{error}</Text> : null}
