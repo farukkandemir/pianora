@@ -105,6 +105,27 @@ export function positionAtMs(timeline: Timeline, ms: number): { measureIndex: nu
   return { measureIndex: m.measureIndex, orderPos: m.orderPos, beatInMeasure: Math.max(0, ms - m.startMs) / m.msPerBeat };
 }
 
+/**
+ * The note sounding at `ms`: the last note that started at or before it.
+ * Returns its index in `timeline.notes` plus where the cursor belongs, or
+ * undefined before the first note. Chord notes share a start, so the index is
+ * stable for the whole chord; callers compare indices to detect a new onset.
+ */
+export function soundingNoteAtMs(timeline: Timeline, ms: number): { index: number; measureIndex: number; beatInMeasure: number } | undefined {
+  const notes = timeline.notes;
+  if (!notes.length || ms < notes[0].startMs) return undefined;
+  let lo = 0, hi = notes.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1;
+    if (notes[mid].startMs <= ms) lo = mid; else hi = mid - 1;
+  }
+  // Step back to the first note of the chord so every position in the chord maps to one index.
+  while (lo > 0 && notes[lo - 1].startMs === notes[lo].startMs) lo--;
+  const n = notes[lo];
+  const m = timeline.measures[n.orderPos];
+  return { index: lo, measureIndex: n.measureIndex, beatInMeasure: (n.startMs - m.startMs) / m.msPerBeat };
+}
+
 /** Notes starting in [fromMs, toMs). The scheduler calls this once per tick. */
 export function notesStartingBetween(timeline: Timeline, fromMs: number, toMs: number): TimelineNote[] {
   const out: TimelineNote[] = [];

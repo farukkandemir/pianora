@@ -1,7 +1,7 @@
 import type { Measure, Note, Score } from '../model';
 import { parseMusicXml } from '../musicxml/parse';
 import { PIANO_XML } from '../testdata/fixtures';
-import { buildTimeline, effectiveTempos, measureAtMs, notesStartingBetween, positionAtMs } from '../timeline';
+import { buildTimeline, effectiveTempos, measureAtMs, notesStartingBetween, positionAtMs, soundingNoteAtMs } from '../timeline';
 
 const fixture = parseMusicXml(PIANO_XML);
 
@@ -80,6 +80,21 @@ describe('lookups', () => {
     expect(positionAtMs(t, 5999)).toMatchObject({ measureIndex: 2 });
     expect(positionAtMs(t, 6000)).toBeUndefined();
     expect(measureAtMs(t, -5)?.measureIndex).toBe(0);
+  });
+
+  it('finds the sounding note and holds it until the next onset', () => {
+    expect(soundingNoteAtMs(t, -1)).toBeUndefined();
+    expect(soundingNoteAtMs(t, 0)).toEqual({ index: 0, measureIndex: 0, beatInMeasure: 0 });
+    expect(soundingNoteAtMs(t, 499)).toEqual({ index: 0, measureIndex: 0, beatInMeasure: 0 });
+    expect(soundingNoteAtMs(t, 500)).toEqual({ index: 1, measureIndex: 0, beatInMeasure: 1 });
+    expect(soundingNoteAtMs(t, 2999)).toEqual({ index: 2, measureIndex: 1, beatInMeasure: 0 });
+    expect(soundingNoteAtMs(t, 99999)).toMatchObject({ index: 3, measureIndex: 2 });
+  });
+
+  it('maps every position inside a chord to the chord\'s first note', () => {
+    const chord = buildTimeline(score([measure(0, 0, 4)], [note(60, 1, 1, 0), note(64, 1, 1, 0), note(67, 1, 1, 0)]));
+    expect(soundingNoteAtMs(chord, 500)?.index).toBe(0);
+    expect(soundingNoteAtMs(chord, 900)?.index).toBe(0);
   });
 
   it('returns notes starting in a half-open window', () => {

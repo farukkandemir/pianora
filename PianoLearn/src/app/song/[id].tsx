@@ -16,7 +16,7 @@ import { PracticeTopBar } from '@/practice/PracticeTopBar';
 import { useListen } from '@/practice/useListen';
 import { useMidiStatus } from '@/practice/useMidiStatus';
 import { usePracticeSession } from '@/practice/usePracticeSession';
-import { positionAtMs } from '@/engine/timeline';
+import { soundingNoteAtMs } from '@/engine/timeline';
 import { SheetView, type SheetMessage, type SheetViewHandle } from '@/sheet/SheetView';
 
 interface Loaded {
@@ -122,14 +122,20 @@ function Practice({ data, onReady, onError }: { data: Loaded; onReady: () => voi
     sheet.current?.setLoop(loop);
   }, [loop, sheetLoaded]);
 
-  // Listen: the sampler reports its position ~30x a second; the cursor follows it.
+  // Listen: the sampler reports its position ~30x a second. The cursor moves
+  // only when the sounding note changes, so the viewer does one placement per
+  // note instead of thirty a second, and it sits on the note you hear.
+  const listenNote = useRef(-1);
   const listen = useListen(score, settings.listenSpeed, (ms) => {
-    const pos = positionAtMs(listenTimelineRef.current, ms);
-    if (pos) sheet.current?.setCursor(pos.measureIndex, pos.beatInMeasure);
+    const at = soundingNoteAtMs(listenTimelineRef.current, ms);
+    if (!at || at.index === listenNote.current) return;
+    listenNote.current = at.index;
+    sheet.current?.setCursor(at.measureIndex, at.beatInMeasure);
   });
   const listenTimelineRef = useRef(listen.timeline);
   listenTimelineRef.current = listen.timeline;
   const listening = listen.state.kind === 'playing';
+  useEffect(() => { listenNote.current = -1; }, [listening]);
 
   // Move the cursor whenever the current event changes (and back to it after Listen ends).
   const cur = session.current;
