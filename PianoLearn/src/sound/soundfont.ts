@@ -6,7 +6,7 @@
 import { Directory, DownloadTask, File, Paths } from 'expo-file-system';
 
 /** Public URL of the bucket object. Set after the upload; empty means "not configured". */
-export const SOUNDFONT_URL = 'https://pub-4b6c664bf604437bb7f9af4bbe5dbf62.r2.dev/salamander-8v.sf2';
+export const SOUNDFONT_URL = 'https://sounds.pianolearn.app/salamander-8v.sf2';
 export const SOUNDFONT_FILE = 'salamander-8v.sf2';
 /** Exact size of the published file, used to detect a partial download. */
 export const SOUNDFONT_BYTES = 287_029_056;
