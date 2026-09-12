@@ -24,14 +24,14 @@ export function ContinueCard({ song, onPress }: { song: SongListItem; onPress: (
         <Image source={SCRIM} resizeMode="stretch" style={styles.scrim} accessibilityIgnoresInvertColors />
         <View style={[styles.bottom, { padding: 18, gap: spacing.md }]}>
           <View style={styles.titles}>
-            <Text variant="heading" tone="onInk" numberOfLines={1} style={styles.title}>{song.title}</Text>
-            <Text variant="caption" tone="onInk" numberOfLines={1} style={styles.subtitle}>
+            <Text variant="heading" tone="onAccent" numberOfLines={1} style={styles.title}>{song.title}</Text>
+            <Text variant="caption" tone="onAccent" numberOfLines={1} style={styles.subtitle}>
               {displayComposer(song.composer)} · Bar {bar} of {song.totalMeasures}
             </Text>
           </View>
           <View style={[styles.resume, { backgroundColor: colors.accent, borderRadius: radius.pill, gap: spacing.sm }]}>
-            <Icon name="play" size={14} tone="onInk" />
-            <Text variant="bodyStrong" tone="onInk">Resume</Text>
+            <Icon name="play" size={14} tone="onAccent" />
+            <Text variant="bodyStrong" tone="onAccent">Resume</Text>
           </View>
         </View>
       </View>

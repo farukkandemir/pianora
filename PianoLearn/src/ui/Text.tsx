@@ -2,7 +2,7 @@ import { Text as RNText, type TextProps as RNTextProps, type TextStyle } from 'r
 
 import { useTheme, type Theme, type TypeStyle } from '@/theme';
 
-type Tone = 'ink' | 'muted' | 'faint' | 'accent' | 'onInk';
+type Tone = 'ink' | 'muted' | 'faint' | 'accent' | 'onInk' | 'onAccent' | 'onCurtain';
 
 export type TextProps = RNTextProps & {
   /** Type scale entry. Default: body. */
@@ -16,8 +16,10 @@ const toneColor: Record<Tone, keyof Theme['colors']> = {
   ink: 'ink',
   muted: 'inkMuted',
   faint: 'inkFaint',
-  accent: 'accent',
+  accent: 'accentInk',
   onInk: 'onInk',
+  onAccent: 'onAccent',
+  onCurtain: 'onCurtain',
 };
 
 /** Weight the system font should use when Outfit isn't loaded yet. */

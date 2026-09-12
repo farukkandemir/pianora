@@ -25,13 +25,24 @@ export const colors = {
   inkMuted: '#6E6480',
   /** Placeholders, chevrons, inactive icons. */
   inkFaint: '#AFA6BB',
-  /** Text on ink or accent fills. */
+  /** Text on ink fills (selected chips, ink buttons). Dark inverts it. */
   onInk: '#FFFFFF',
+  /** Text on accent fills and on the Continue card's image scrim. White in both themes. */
+  onAccent: '#FFFFFF',
 
-  /** The one expressive color. One element per screen: the thing you'd tap. */
+  /** The one expressive color. One element per screen: the thing you'd tap. Fills only. */
   accent: '#6A4C7C',
+  /** Accent as text or icon. Same as `accent` in light; lifted in dark so it stays readable. */
+  accentInk: '#6A4C7C',
   /** Accent tint for badges and selected states. */
   accentTint: '#EFE7F2',
+
+  /** The rotation curtain and the practice title card. Ink in light, the page in dark. */
+  curtain: '#1E2433',
+  /** Text on the curtain. */
+  onCurtain: '#FFFFFF',
+  /** The sheet's page. Light in both themes: the score is printed music, not chrome. */
+  paper: '#F3F0F6',
 
   /** Hand colours. Defaults; the user picks from `handPalette` in Settings. */
   rightHand: '#3B6FE0',
@@ -49,6 +60,44 @@ export const colors = {
 } as const;
 
 export type ThemeColors = { [K in keyof typeof colors]: string };
+
+/**
+ * Dark: neutral charcoal, soft grey text, the same plum on fills. Chosen in
+ * Paper ("Dark mode" page, Slack-style charcoal, S3). The muted surface is
+ * darker than the page, as in light, so fields and segmented tracks keep
+ * their relationship to the ground.
+ */
+export const darkColors: ThemeColors = {
+  bg: '#26292E',
+  surface: '#30343A',
+  surfaceMuted: '#1F2226',
+  border: '#44484F',
+
+  ink: '#DADBDC',
+  inkMuted: '#B3B4B6',
+  inkFaint: '#8A8C90',
+  onInk: '#26292E',
+  onAccent: '#FFFFFF',
+
+  accent: colors.accent,
+  accentInk: '#B99BD0',
+  accentTint: '#433A4B',
+
+  curtain: '#26292E',
+  onCurtain: '#DADBDC',
+  paper: colors.paper,
+
+  rightHand: colors.rightHand,
+  leftHand: colors.leftHand,
+  correct: colors.correct,
+  wrong: colors.wrong,
+  cursor: colors.cursor,
+  loop: colors.loop,
+
+  keyWhite: colors.keyWhite,
+  keyBlack: colors.keyBlack,
+  keyBorder: colors.keyBorder,
+};
 
 /** Colours a hand can wear. Green and red are kept for correct and wrong keys. */
 export const handPalette = {
@@ -146,3 +195,4 @@ export type Theme = {
 };
 
 export const lightTheme: Theme = { colors, spacing, radius, fonts: systemFonts, type, shadows };
+export const darkTheme: Theme = { colors: darkColors, spacing, radius, fonts: systemFonts, type, shadows };

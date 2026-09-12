@@ -24,7 +24,7 @@ export type ButtonProps = Omit<PressableProps, 'style' | 'children'> & {
 export function Button({ label, variant = 'ink', size = 'lg', iconLeft, iconRight, block, disabled, style, ...rest }: ButtonProps) {
   const { colors, radius, spacing, shadows } = useTheme();
   const bg = variant === 'accent' ? colors.accent : variant === 'ink' ? colors.ink : colors.surfaceMuted;
-  const tone = variant === 'muted' ? 'ink' : 'onInk';
+  const tone = variant === 'muted' ? 'ink' : variant === 'accent' ? 'onAccent' : 'onInk';
   const height = size === 'lg' ? 54 : 44;
   return (
     <Pressable

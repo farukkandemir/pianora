@@ -74,7 +74,7 @@ function NotConnected({ onPair }: { onPair: () => void }) {
         <Text tone="muted">Turn on Bluetooth on the piano, then pick it from the list.</Text>
       </View>
       <View style={{ gap: spacing.lg }}>
-        <Button label="Pair a Bluetooth piano" variant="accent" block iconLeft={<Icon name="bluetooth" size={18} tone="onInk" />} onPress={onPair} />
+        <Button label="Pair a Bluetooth piano" variant="accent" block iconLeft={<Icon name="bluetooth" size={18} tone="onAccent" />} onPress={onPair} />
         <Text variant="caption" tone="faint" center>USB works too. Plug in and it connects on its own.</Text>
       </View>
     </>
@@ -100,7 +100,7 @@ function Connected({ piano, lastNote, onPair, onForget }: {
             </View>
           </View>
           <View style={styles.lastNote}>
-            <View style={[styles.noteCircle, { backgroundColor: colors.accentTint, borderColor: colors.accent }]}>
+            <View style={[styles.noteCircle, { backgroundColor: colors.accentTint, borderColor: colors.accentInk }]}>
               <Text variant="subheading" tone="accent">{lastNote ?? '–'}</Text>
             </View>
             <Text variant="micro" tone="faint" style={styles.noteLabel}>Last note</Text>

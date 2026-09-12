@@ -25,7 +25,7 @@ export function SheetIllustration() {
         <Staff notes={BASS} top={4} />
       </View>
       <View style={[styles.badge, { backgroundColor: colors.accent }, shadows.accent]}>
-        <Icon name="plus" size={20} tone="onInk" />
+        <Icon name="plus" size={20} tone="onAccent" />
       </View>
     </View>
   );
@@ -39,7 +39,7 @@ function Staff({ notes, top, accentIndex }: { notes: [number, number, boolean][]
       {[0, 1, 2, 3, 4].map((i) => <View key={i} style={[styles.line, line, { top: top + i * 8 }]} />)}
       {[70, 140].map((x) => <View key={x} style={[styles.barline, line, { left: x, top, height: 32 }]} />)}
       {notes.map(([x, y, up], i) => {
-        const color = i === accentIndex ? colors.accent : colors.ink;
+        const color = i === accentIndex ? colors.accentInk : colors.ink;
         return (
           <View key={i}>
             <View style={[styles.head, { left: x - 5, top: y - 3.5, backgroundColor: color }]} />

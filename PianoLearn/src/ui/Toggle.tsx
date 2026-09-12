@@ -26,7 +26,8 @@ export function Toggle({ value, onChange, accessibilityLabel, disabled }: Toggle
         disabled && styles.disabled,
       ]}
     >
-      <View style={[styles.knob, { borderRadius: radius.pill, backgroundColor: colors.onInk }]} />
+      {/* White in both themes; it also sits on the faint off-track, where white still reads. */}
+      <View style={[styles.knob, { borderRadius: radius.pill, backgroundColor: colors.onAccent }]} />
     </Pressable>
   );
 }

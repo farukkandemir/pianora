@@ -55,15 +55,15 @@ export function PracticeTitleCard({ opacity, title, composer, resumeBar, totalMe
     .join(' · ');
 
   return (
-    <Animated.View pointerEvents="auto" style={[StyleSheet.absoluteFill, styles.card, { backgroundColor: colors.ink, opacity }]}>
+    <Animated.View pointerEvents="auto" style={[StyleSheet.absoluteFill, styles.card, { backgroundColor: colors.curtain, opacity }]}>
       <Animated.View style={[styles.details, { opacity: details, gap: spacing.sm }]}>
-        {title ? <Text variant="heading" tone="onInk" center numberOfLines={2}>{title}</Text> : null}
-        {title ? <Text tone="onInk" center style={styles.muted}>{subtitle}</Text> : null}
+        {title ? <Text variant="heading" tone="onCurtain" center numberOfLines={2}>{title}</Text> : null}
+        {title ? <Text tone="onCurtain" center style={styles.muted}>{subtitle}</Text> : null}
         {error ? (
           <>
-            <Text tone="onInk" center style={[styles.muted, { paddingTop: spacing.md }]}>{error}</Text>
+            <Text tone="onCurtain" center style={[styles.muted, { paddingTop: spacing.md }]}>{error}</Text>
             <Pressable onPress={onBack} hitSlop={12} style={{ paddingTop: spacing.md }}>
-              <Text variant="bodyStrong" tone="onInk" center>Back to Library</Text>
+              <Text variant="bodyStrong" tone="onCurtain" center>Back to Library</Text>
             </Pressable>
           </>
         ) : (

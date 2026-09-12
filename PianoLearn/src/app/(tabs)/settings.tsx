@@ -7,10 +7,11 @@ import { View } from 'react-native';
 
 import { HandSwatches } from '@/components/settings/HandSwatches';
 import { SettingsGroup, SettingsRow } from '@/components/settings/SettingsList';
+import { THEME_OPTIONS } from '@/data/settings';
 import { useSettings } from '@/data/useSettings';
 import { useMidiStatus } from '@/practice/useMidiStatus';
 import { useTheme } from '@/theme';
-import { Icon, Screen, Text, Toggle } from '@/ui';
+import { Icon, Screen, Segmented, Text, Toggle } from '@/ui';
 
 const TRANSPORT_LABEL = { bluetooth: 'Bluetooth', usb: 'USB', network: 'Network', other: 'MIDI' } as const;
 
@@ -24,6 +25,13 @@ export default function SettingsTab() {
     <Screen>
       <Text variant="title" style={{ marginBottom: spacing.xxl }}>Settings</Text>
       <View style={{ gap: spacing.xxl }}>
+        <SettingsGroup title="Appearance">
+          <SettingsRow
+            title="Theme"
+            right={<Segmented fit value={settings.theme} onChange={(v) => set('theme', v)} options={THEME_OPTIONS} />}
+          />
+        </SettingsGroup>
+
         <SettingsGroup title="Practice">
           <SettingsRow
             title="Show on-screen keyboard"

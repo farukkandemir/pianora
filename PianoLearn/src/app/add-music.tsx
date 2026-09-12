@@ -40,7 +40,7 @@ export default function AddMusicScreen() {
           label="Choose a file"
           variant="accent"
           block
-          iconLeft={<Icon name="file" size={18} tone="onInk" />}
+          iconLeft={<Icon name="file" size={18} tone="onAccent" />}
           onPress={onChooseFile}
           disabled={busy}
         />

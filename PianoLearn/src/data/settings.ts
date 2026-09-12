@@ -14,7 +14,16 @@ export interface Settings {
   leftHand: HandColorKey;
   /** Listen plays the piece at this percentage of the score's tempo. */
   listenSpeed: ListenSpeed;
+  /** Light or dark chrome; 'system' follows the phone. */
+  theme: ThemeSetting;
 }
+
+export type ThemeSetting = 'system' | 'light' | 'dark';
+export const THEME_OPTIONS: { value: ThemeSetting; label: string }[] = [
+  { value: 'system', label: 'System' },
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
+];
 
 export type ListenSpeed = 50 | 75 | 100;
 export const LISTEN_SPEEDS: ListenSpeed[] = [50, 75, 100];
@@ -25,6 +34,7 @@ export const DEFAULT_SETTINGS: Settings = {
   rightHand: 'cobalt',
   leftHand: 'amber',
   listenSpeed: 100,
+  theme: 'system',
 };
 
 export async function loadSettings(): Promise<Settings> {

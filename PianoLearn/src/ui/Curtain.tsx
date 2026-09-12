@@ -48,7 +48,7 @@ export function CurtainProvider({ children }: { children: ReactNode }) {
     <CurtainContext.Provider value={api}>
       {children}
       {visible ? (
-        <Animated.View pointerEvents="auto" style={[StyleSheet.absoluteFill, { backgroundColor: colors.ink, opacity }]} />
+        <Animated.View pointerEvents="auto" style={[StyleSheet.absoluteFill, { backgroundColor: colors.curtain, opacity }]} />
       ) : null}
     </CurtainContext.Provider>
   );

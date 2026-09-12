@@ -61,7 +61,7 @@ export const SheetView = forwardRef<SheetViewHandle, Props>(function SheetView({
   const { colors } = useTheme();
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.surfaceMuted }, style]}>
+    <View style={[styles.container, { backgroundColor: colors.paper }, style]}>
       <WebView
         ref={web}
         originWhitelist={['*']}
@@ -74,7 +74,7 @@ export const SheetView = forwardRef<SheetViewHandle, Props>(function SheetView({
         showsVerticalScrollIndicator={false}
         allowsInlineMediaPlayback
         setSupportMultipleWindows={false}
-        style={[styles.web, { backgroundColor: colors.surfaceMuted }]}
+        style={[styles.web, { backgroundColor: colors.paper }]}
       />
     </View>
   );

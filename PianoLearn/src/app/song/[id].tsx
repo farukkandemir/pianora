@@ -18,6 +18,7 @@ import { useMidiStatus } from '@/practice/useMidiStatus';
 import { usePracticeSession } from '@/practice/usePracticeSession';
 import { soundingNoteAtMs } from '@/engine/timeline';
 import { SheetView, type SheetMessage, type SheetViewHandle } from '@/sheet/SheetView';
+import { useTheme } from '@/theme';
 
 interface Loaded {
   song: SongRecord;
@@ -29,6 +30,7 @@ interface Loaded {
 }
 
 export default function PracticeScreen() {
+  const { colors } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const [song, setSong] = useState<SongRecord | null>(null);
@@ -73,7 +75,7 @@ export default function PracticeScreen() {
     <SafeAreaProvider>
       <View style={styles.container}>
         <Stack.Screen options={{ headerShown: false }} />
-        {error && cardGone ? <Text style={styles.error}>{error}</Text> : null}
+        {error && cardGone ? <Text style={[styles.error, { color: colors.wrong }]}>{error}</Text> : null}
         {data ? <Practice data={data} onReady={onReady} onError={setError} /> : null}
         {!cardGone ? (
           <PracticeTitleCard
@@ -94,6 +96,7 @@ export default function PracticeScreen() {
 function Practice({ data, onReady, onError }: { data: Loaded; onReady: () => void; onError: (message: string) => void }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
   const sheet = useRef<SheetViewHandle>(null);
   const [sheetReady, setSheetReady] = useState(false);
   const [handMode, setHandMode] = useState<HandMode>(data.handMode);
@@ -191,7 +194,7 @@ function Practice({ data, onReady, onError }: { data: Loaded; onReady: () => voi
   const subtitle = `${data.song.composer ?? 'Unknown composer'} · Bar ${barNumber} of ${score.measures.length}${pass}${status}${midi}`;
 
   return (
-    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
+    <View style={[styles.container, { backgroundColor: colors.bg, paddingBottom: insets.bottom }]}>
       <PracticeTopBar
         insetLeft={insets.left}
         insetRight={insets.right}
@@ -231,7 +234,7 @@ function Practice({ data, onReady, onError }: { data: Loaded; onReady: () => voi
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FCFBFD' },
+  container: { flex: 1 },
   sheet: { flex: 1 },
-  error: { padding: 16, color: '#b00020' },
+  error: { padding: 16 },
 });

@@ -106,7 +106,7 @@ export default function BrowseTab() {
               </View>
               <View style={styles.action}>
                 {busy ? (
-                  <ActivityIndicator color={colors.accent} />
+                  <ActivityIndicator color={colors.accentInk} />
                 ) : isAdded ? (
                   <View style={[styles.added, { gap: spacing.xs }]}>
                     <Icon name="check" size={16} color="correct" />

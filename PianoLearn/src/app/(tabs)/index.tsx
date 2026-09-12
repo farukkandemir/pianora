@@ -98,7 +98,7 @@ export default function LibraryScreen() {
       {/* No "+" on an empty library: the screen itself is the import prompt. */}
       {songs && songs.length > 0 ? (
         <IconButton
-          icon={<Icon name="plus" size={20} tone="onInk" />}
+          icon={<Icon name="plus" size={20} tone="onAccent" />}
           variant="accent"
           size={42}
           accessibilityLabel="Add music"
@@ -124,7 +124,7 @@ export default function LibraryScreen() {
             label="Choose a file"
             variant="accent"
             block
-            iconLeft={<Icon name="file" size={18} tone="onInk" />}
+            iconLeft={<Icon name="file" size={18} tone="onAccent" />}
             onPress={onImport}
             disabled={busy}
             style={{ marginTop: spacing.sm }}

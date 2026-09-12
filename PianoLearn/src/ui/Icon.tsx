@@ -4,7 +4,7 @@ import type { ComponentProps } from 'react';
 import { useTheme, type Theme } from '@/theme';
 
 export type IconName = ComponentProps<typeof Feather>['name'];
-type Tone = 'ink' | 'muted' | 'faint' | 'accent' | 'onInk';
+type Tone = 'ink' | 'muted' | 'faint' | 'accent' | 'onInk' | 'onAccent' | 'onCurtain';
 
 export type IconProps = {
   name: IconName;
@@ -15,7 +15,7 @@ export type IconProps = {
 };
 
 const toneColor: Record<Tone, keyof Theme['colors']> = {
-  ink: 'ink', muted: 'inkMuted', faint: 'inkFaint', accent: 'accent', onInk: 'onInk',
+  ink: 'ink', muted: 'inkMuted', faint: 'inkFaint', accent: 'accentInk', onInk: 'onInk', onAccent: 'onAccent', onCurtain: 'onCurtain',
 };
 
 /** Feather outline icons, colored from the theme. */
