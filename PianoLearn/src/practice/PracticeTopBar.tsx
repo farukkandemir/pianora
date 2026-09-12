@@ -40,10 +40,10 @@ interface Props {
 export const TOP_BAR_HEIGHT = 60;
 
 export function PracticeTopBar(p: Props) {
-  const { spacing } = useTheme();
+  const { spacing, colors } = useTheme();
 
   return (
-    <View style={[styles.bar, { paddingLeft: 16 + p.insetLeft, paddingRight: 12 + p.insetRight, gap: spacing.sm }]}>
+    <View style={[styles.bar, { paddingLeft: 16 + p.insetLeft, paddingRight: 12 + p.insetRight, gap: spacing.sm, borderBottomColor: colors.border }]}>
       <Pressable onPress={p.onBack} hitSlop={12} accessibilityRole="button" accessibilityLabel="Back to Library">
         <Icon name="chevron-left" size={24} />
       </Pressable>
@@ -151,7 +151,7 @@ function BarAction({ icon, label, active, onPress, accessibilityLabel }: {
 }
 
 const styles = StyleSheet.create({
-  bar: { height: TOP_BAR_HEIGHT, flexDirection: 'row', alignItems: 'center' },
+  bar: { height: TOP_BAR_HEIGHT, flexDirection: 'row', alignItems: 'center', borderBottomWidth: StyleSheet.hairlineWidth },
   piece: { flex: 1, minWidth: 0, paddingLeft: 4, paddingRight: 8 },
   bothHands: { flexDirection: 'row', alignItems: 'center', gap: 1 },
   action: { width: 52, height: 44, alignItems: 'center', justifyContent: 'center', gap: 2 },

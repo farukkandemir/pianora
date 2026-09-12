@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 
 import type { MeasureRange } from '@/engine/model';
+import { useTheme } from '@/theme';
 
 import { SHEET_VIEWER_HTML } from './viewerHtml.generated';
 
@@ -57,8 +58,10 @@ export const SheetView = forwardRef<SheetViewHandle, Props>(function SheetView({
     }
   }, [onMessage]);
 
+  const { colors } = useTheme();
+
   return (
-    <View style={[styles.container, style]}>
+    <View style={[styles.container, { backgroundColor: colors.surfaceMuted }, style]}>
       <WebView
         ref={web}
         originWhitelist={['*']}
@@ -71,13 +74,13 @@ export const SheetView = forwardRef<SheetViewHandle, Props>(function SheetView({
         showsVerticalScrollIndicator={false}
         allowsInlineMediaPlayback
         setSupportMultipleWindows={false}
-        style={styles.web}
+        style={[styles.web, { backgroundColor: colors.surfaceMuted }]}
       />
     </View>
   );
 });
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  web: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1 },
+  web: { flex: 1 },
 });
