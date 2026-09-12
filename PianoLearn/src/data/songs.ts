@@ -153,6 +153,14 @@ export async function openSong(song: SongRecord): Promise<LoadedScore> {
   return loadScore(await readSongBytes(song.fileName));
 }
 
+/** Renames a piece. The title is trimmed; an empty title is refused. */
+export async function renameSong(songId: string, title: string): Promise<void> {
+  const clean = title.trim();
+  if (!clean) throw new Error('The title cannot be empty.');
+  const db = await getDb();
+  await db.runAsync('UPDATE songs SET title = ? WHERE id = ?', clean, songId);
+}
+
 export async function deleteSong(song: SongRecord): Promise<void> {
   const db = await getDb();
   await db.runAsync('DELETE FROM songs WHERE id = ?', song.id);

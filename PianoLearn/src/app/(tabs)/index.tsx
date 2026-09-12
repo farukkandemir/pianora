@@ -1,14 +1,13 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Alert, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { ContinueCard } from '@/components/library/ContinueCard';
 import { SheetIllustration } from '@/components/library/SheetIllustration';
-import { SongArt } from '@/components/library/SongArt';
-import { deleteSong, type SongListItem } from '@/data/songs';
+import { SongTile } from '@/components/library/SongTile';
+import { deleteSong, renameSong, type SongListItem } from '@/data/songs';
 import { useImportSong } from '@/data/useImportSong';
 import { useSongs } from '@/data/useSongs';
-import { composerSurname } from '@/lib/format';
 import { useTheme } from '@/theme';
 import { Button, Chip, Icon, IconButton, Screen, SearchField, Text, useCurtain } from '@/ui';
 
@@ -26,7 +25,7 @@ function normalize(s: string): string {
 
 export default function LibraryScreen() {
   const router = useRouter();
-  const { colors, spacing, radius } = useTheme();
+  const { colors, spacing } = useTheme();
   const { width } = useWindowDimensions();
   // Two tiles per row, sharing the screen width minus the edge insets and one gap.
   const tile = Math.floor((width - spacing.screen * 2 - spacing.lg) / 2);
@@ -58,6 +57,19 @@ export default function LibraryScreen() {
       { text: 'Cancel', style: 'cancel' },
       { text: 'Delete', style: 'destructive', onPress: async () => { await deleteSong(song); refresh(); } },
     ]);
+  }, [refresh]);
+
+  // iOS text prompt; the title is the only thing a user can edit on a piece.
+  const onRename = useCallback((song: SongListItem) => {
+    Alert.prompt('Rename piece', undefined, async (title) => {
+      if (title === undefined || title.trim() === song.title) return;
+      try {
+        await renameSong(song.id, title);
+        refresh();
+      } catch (e) {
+        Alert.alert('Could not rename', e instanceof Error ? e.message : String(e));
+      }
+    }, 'plain-text', song.title);
   }, [refresh]);
 
   // Hero = most recently practiced piece.
@@ -159,13 +171,14 @@ export default function LibraryScreen() {
       ) : null}
       <View style={[styles.grid, { paddingHorizontal: spacing.screen, gap: spacing.lg }]}>
         {visible.map((item) => (
-          <Pressable key={item.id} onPress={() => open(item)} onLongPress={() => onDelete(item)} style={({ pressed }) => [{ width: tile }, pressed && styles.pressed]}>
-            <SongArt songId={item.id} width={tile} height={tile} radius={radius.lg} />
-            <Text variant="bodyStrong" numberOfLines={1} style={{ paddingTop: spacing.sm }}>{item.title}</Text>
-            <Text variant="caption" tone="muted" numberOfLines={1}>
-              {composerSurname(item.composer)} · {item.progress ? `Bar ${item.progress.lastMeasure + 1} of ${item.totalMeasures}` : 'Not started'}
-            </Text>
-          </Pressable>
+          <SongTile
+            key={item.id}
+            song={item}
+            width={tile}
+            onOpen={() => open(item)}
+            onRename={() => onRename(item)}
+            onDelete={() => onDelete(item)}
+          />
         ))}
       </View>
       {error ? <Text tone="accent" style={{ paddingHorizontal: spacing.screen, color: colors.wrong }}>{error}</Text> : null}
@@ -177,6 +190,5 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   empty: { alignItems: 'stretch' },
   sectionHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
-  pressed: { opacity: 0.85 },
   grid: { flexDirection: 'row', flexWrap: 'wrap' },
 });
