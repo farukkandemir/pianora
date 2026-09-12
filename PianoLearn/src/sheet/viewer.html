@@ -245,6 +245,16 @@
     }
   }
 
+  // True when the iterator already sits at or beyond the requested position.
+  function cursorIsPast(it, measureIndex, offsetQuarters) {
+    var mi = it.CurrentMeasureIndex;
+    if (mi > measureIndex) return true;
+    if (mi < measureIndex) return false;
+    var m = it.CurrentMeasure;
+    var off = (it.currentTimeStamp.RealValue - m.AbsoluteTimestamp.RealValue) * 4;
+    return off + 1e-6 >= offsetQuarters;
+  }
+
   function cursorRect() {
     var el = osmd && osmd.cursor && osmd.cursor.cursorElement;
     if (!el) return null;
@@ -294,8 +304,13 @@
       if (!osmd || !loaded) return;
       lastCursor = { measureIndex: measureIndex, offsetQuarters: offsetQuarters };
       var c = osmd.cursor;
-      c.reset();
       var it = c.iterator;
+      // Step forward from where the cursor is when the target is ahead; only a
+      // backward move (repeat, restart, tap on an earlier bar) restarts from bar 1.
+      if (it.EndReached || cursorIsPast(it, measureIndex, offsetQuarters)) {
+        c.reset();
+        it = c.iterator;
+      }
       var guard = 0;
       while (!it.EndReached && guard++ < 100000) {
         var mi = it.CurrentMeasureIndex;
