@@ -9,7 +9,7 @@ import { SongArt } from './SongArt';
 /**
  * The hero on the Library: the piece you were last practicing. Artwork with
  * an ink scrim fading in over the bottom, title and composer in white on it,
- * plum Resume pill. The scrim is a 1x64 PNG (ink, 5% -> 78% alpha from 30%
+ * plum Resume pill. No badge: the card's position says "continue". The scrim is a 1x64 PNG (ink, 5% -> 78% alpha from 30%
  * down) stretched over the card: no gradient library, no experimental API.
  * Regenerate the asset if the ink color or the fade changes.
  */
@@ -22,9 +22,6 @@ export function ContinueCard({ song, onPress }: { song: SongListItem; onPress: (
       <View style={[styles.card, { borderRadius: radius.xl, backgroundColor: colors.surfaceMuted }]}>
         <SongArt songId={song.id} height={CARD_HEIGHT} radius={radius.xl} style={StyleSheet.absoluteFill} />
         <Image source={SCRIM} resizeMode="stretch" style={styles.scrim} accessibilityIgnoresInvertColors />
-        <View style={[styles.badge, { left: spacing.lg, top: spacing.lg, backgroundColor: colors.accentTint, borderRadius: radius.pill }]}>
-          <Text variant="label" tone="accent" style={styles.badgeText}>Continue</Text>
-        </View>
         <View style={[styles.bottom, { padding: 18, gap: spacing.md }]}>
           <View style={styles.titles}>
             <Text variant="heading" tone="onInk" numberOfLines={1} style={styles.title}>{song.title}</Text>
@@ -47,8 +44,6 @@ const CARD_HEIGHT = 200;
 const styles = StyleSheet.create({
   card: { height: CARD_HEIGHT, overflow: 'hidden' },
   pressed: { opacity: 0.92, transform: [{ scale: 0.99 }] },
-  badge: { position: 'absolute', height: 26, paddingHorizontal: 10, justifyContent: 'center' },
-  badgeText: { fontSize: 11, lineHeight: 14 },
   bottom: { position: 'absolute', left: 0, right: 0, bottom: 0, flexDirection: 'row', alignItems: 'flex-end' },
   titles: { flex: 1, gap: 4 },
   title: { lineHeight: 26 },

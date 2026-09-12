@@ -31,6 +31,8 @@ export function Screen({ children, scroll = true, inset = true, topInset = true,
       style={[styles.fill, { backgroundColor: colors.bg }]}
       contentContainerStyle={[padding, { paddingBottom: insets.bottom + spacing.xxl }, style]}
       contentInsetAdjustmentBehavior="never"
+      keyboardDismissMode="on-drag"
+      keyboardShouldPersistTaps="handled"
     >
       {children}
     </ScrollView>

@@ -1,6 +1,6 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useMemo } from 'react';
-import { Alert, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { useCallback, useMemo, useState } from 'react';
+import { Alert, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { ContinueCard } from '@/components/library/ContinueCard';
 import { SheetIllustration } from '@/components/library/SheetIllustration';
@@ -10,7 +10,19 @@ import { useImportSong } from '@/data/useImportSong';
 import { useSongs } from '@/data/useSongs';
 import { composerSurname } from '@/lib/format';
 import { useTheme } from '@/theme';
-import { Button, Icon, IconButton, Screen, Text, useCurtain } from '@/ui';
+import { Button, Chip, Icon, IconButton, Screen, SearchField, Text, useCurtain } from '@/ui';
+
+type Filter = 'recent' | 'inProgress' | 'az';
+const FILTERS: { key: Filter; label: string }[] = [
+  { key: 'recent', label: 'Recent' },
+  { key: 'inProgress', label: 'In progress' },
+  { key: 'az', label: 'A–Z' },
+];
+
+/** Case- and accent-insensitive "contains" for titles and composers. */
+function normalize(s: string): string {
+  return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
 
 export default function LibraryScreen() {
   const router = useRouter();
@@ -21,6 +33,8 @@ export default function LibraryScreen() {
   const { songs, error, refresh } = useSongs();
   const curtain = useCurtain();
   const { importFromPicker, busy } = useImportSong();
+  const [query, setQuery] = useState('');
+  const [filter, setFilter] = useState<Filter>('recent');
 
   useFocusEffect(useCallback(() => { refresh(); }, [refresh]));
 
@@ -51,6 +65,20 @@ export default function LibraryScreen() {
     const practiced = (songs ?? []).filter((s) => s.progress).sort((a, b) => b.progress!.updatedAt - a.progress!.updatedAt);
     return practiced[0] ?? null;
   }, [songs]);
+
+  // The list comes from the DB in "recent" order; the chips and the search
+  // box narrow and reorder it here, on the client.
+  const searching = query.trim().length > 0;
+  const visible = useMemo(() => {
+    let list = songs ?? [];
+    if (searching) {
+      const q = normalize(query.trim());
+      list = list.filter((s) => normalize(s.title).includes(q) || normalize(s.composer ?? '').includes(q));
+    }
+    if (filter === 'inProgress') list = list.filter((s) => s.progress);
+    if (filter === 'az') list = [...list].sort((a, b) => a.title.localeCompare(b.title));
+    return list;
+  }, [songs, query, searching, filter]);
 
   const header = (
     <View style={[styles.header, { paddingBottom: spacing.xxl }]}>
@@ -100,15 +128,37 @@ export default function LibraryScreen() {
     <Screen inset={false}>
       <View style={{ paddingHorizontal: spacing.screen }}>
         {header}
-        {hero ? <ContinueCard song={hero} onPress={() => open(hero)} /> : null}
+        <SearchField value={query} onChangeText={setQuery} placeholder="Search your pieces or composers" />
       </View>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={{ marginTop: spacing.md }}
+        contentContainerStyle={{ paddingHorizontal: spacing.screen, gap: spacing.sm }}
+      >
+        {FILTERS.map((f) => (
+          <Chip key={f.key} label={f.label} selected={filter === f.key} onPress={() => setFilter(f.key)} />
+        ))}
+      </ScrollView>
+
+      {/* The hero belongs to browsing, not to a search result. */}
+      {hero && !searching ? (
+        <View style={{ paddingHorizontal: spacing.screen, paddingTop: spacing.xl }}>
+          <ContinueCard song={hero} onPress={() => open(hero)} />
+        </View>
+      ) : null}
 
       <View style={[styles.sectionHead, { paddingHorizontal: spacing.screen, paddingTop: spacing.xxl, paddingBottom: spacing.md }]}>
-        <Text variant="section">Your pieces</Text>
-        <Text variant="caption" tone="muted">{songs.length} {songs.length === 1 ? 'piece' : 'pieces'}</Text>
+        <Text variant="section">{searching ? 'Results' : 'Your pieces'}</Text>
+        <Text variant="caption" tone="muted">{visible.length} {visible.length === 1 ? 'piece' : 'pieces'}</Text>
       </View>
+      {visible.length === 0 ? (
+        <Text tone="muted" style={{ paddingHorizontal: spacing.screen }}>
+          {searching ? `Nothing matches “${query.trim()}”.` : 'Nothing in progress yet. Open a piece to start.'}
+        </Text>
+      ) : null}
       <View style={[styles.grid, { paddingHorizontal: spacing.screen, gap: spacing.lg }]}>
-        {songs.map((item) => (
+        {visible.map((item) => (
           <Pressable key={item.id} onPress={() => open(item)} onLongPress={() => onDelete(item)} style={({ pressed }) => [{ width: tile }, pressed && styles.pressed]}>
             <SongArt songId={item.id} width={tile} height={tile} radius={radius.lg} />
             <Text variant="bodyStrong" numberOfLines={1} style={{ paddingTop: spacing.sm }}>{item.title}</Text>

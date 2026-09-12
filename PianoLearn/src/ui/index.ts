@@ -6,6 +6,7 @@ export { Icon } from './Icon';
 export type { IconName } from './Icon';
 export { IconButton } from './IconButton';
 export { Screen } from './Screen';
+export { SearchField } from './SearchField';
 export { Segmented } from './Segmented';
 export { Text } from './Text';
 export { Toggle } from './Toggle';
