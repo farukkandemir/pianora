@@ -24,7 +24,6 @@ function App() {
       <CurtainProvider>
         <Stack screenOptions={{ orientation: 'portrait' }}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="midi-setup" options={{ title: 'MIDI setup' }} />
       <Stack.Screen name="add-music" options={{ headerShown: false, presentation: 'modal' }} />
           {/*
             Practice is the one landscape screen. It is presented as a
