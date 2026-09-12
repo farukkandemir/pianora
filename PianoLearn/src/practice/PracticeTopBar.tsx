@@ -11,6 +11,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import type { ListenSpeed } from '@/data/settings';
 import type { HandMode } from '@/engine/model';
 import type { ListenState } from '@/practice/useListen';
 import { useTheme } from '@/theme';
@@ -31,6 +32,9 @@ interface Props {
   onRestart: () => void;
   listen: ListenState;
   onToggleListen: () => void;
+  /** Listen plays at this percentage of the written tempo; tapping cycles 50 / 75 / 100. */
+  listenSpeed: ListenSpeed;
+  onCycleListenSpeed: () => void;
 }
 
 export const TOP_BAR_HEIGHT = 60;
@@ -68,6 +72,15 @@ export function PracticeTopBar(p: Props) {
         accessibilityLabel={p.loopLabel ? 'Turn loop off' : 'Loop the current bars'}
       />
       <BarAction icon="rotate-ccw" label="Restart" onPress={p.onRestart} accessibilityLabel="Restart from the first bar" />
+      <Pressable
+        onPress={p.onCycleListenSpeed}
+        accessibilityRole="button"
+        accessibilityLabel={`Listen speed ${p.listenSpeed} percent, tap to change`}
+        style={({ pressed }) => [styles.action, pressed && styles.pressed]}
+      >
+        <Text variant="subheading" tone={p.listenSpeed === 100 ? 'ink' : 'accent'} style={styles.speed}>{p.listenSpeed}%</Text>
+        <Text variant="micro" tone={p.listenSpeed === 100 ? 'ink' : 'accent'}>Speed</Text>
+      </Pressable>
       <BarAction
         icon={p.listen.kind === 'playing' ? 'square' : 'headphones'}
         label={listenLabel(p.listen)}
@@ -142,5 +155,6 @@ const styles = StyleSheet.create({
   piece: { flex: 1, minWidth: 0, paddingLeft: 4, paddingRight: 8 },
   bothHands: { flexDirection: 'row', alignItems: 'center', gap: 1 },
   action: { width: 52, height: 44, alignItems: 'center', justifyContent: 'center', gap: 2 },
+  speed: { lineHeight: 20 },
   pressed: { opacity: 0.7 },
 });

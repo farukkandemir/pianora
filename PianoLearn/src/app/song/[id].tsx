@@ -7,6 +7,7 @@ import { Animated, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PianoKeyboard } from '@/components/PianoKeyboard';
+import { LISTEN_SPEEDS } from '@/data/settings';
 import { getProgress, getSong, openSong, saveProgress, type SongRecord } from '@/data/songs';
 import { useSettings } from '@/data/useSettings';
 import type { HandMode, MeasureRange, Score } from '@/engine/model';
@@ -98,7 +99,7 @@ function Practice({ data, onReady, onError }: { data: Loaded; onReady: () => voi
   const [handMode, setHandMode] = useState<HandMode>(data.handMode);
   const [loop, setLoop] = useState<MeasureRange | null>(data.loop);
   const midiSources = useMidiStatus();
-  const { settings } = useSettings();
+  const { settings, set: setSetting } = useSettings();
 
   const session = usePracticeSession(data.score, { handMode, loop }, data.startMeasure);
   const { score } = data;
@@ -122,7 +123,7 @@ function Practice({ data, onReady, onError }: { data: Loaded; onReady: () => voi
   }, [loop, sheetLoaded]);
 
   // Listen: the sampler reports its position ~30x a second; the cursor follows it.
-  const listen = useListen(score, (ms) => {
+  const listen = useListen(score, settings.listenSpeed, (ms) => {
     const pos = positionAtMs(listenTimelineRef.current, ms);
     if (pos) sheet.current?.setCursor(pos.measureIndex, pos.beatInMeasure);
   });
@@ -198,6 +199,11 @@ function Practice({ data, onReady, onError }: { data: Loaded; onReady: () => voi
         onRestart={session.restart}
         listen={listen.state}
         onToggleListen={listen.toggle}
+        listenSpeed={settings.listenSpeed}
+        onCycleListenSpeed={() => {
+          const i = LISTEN_SPEEDS.indexOf(settings.listenSpeed);
+          setSetting('listenSpeed', LISTEN_SPEEDS[(i + 1) % LISTEN_SPEEDS.length]);
+        }}
       />
       <View style={styles.sheet}>
         <SheetView ref={sheet} onMessage={onMessage} />

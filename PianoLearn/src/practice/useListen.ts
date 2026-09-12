@@ -27,9 +27,9 @@ export interface Listen {
   stop: () => void;
 }
 
-export function useListen(score: Score, onPosition: (ms: number) => void): Listen {
+export function useListen(score: Score, tempoPercent: number, onPosition: (ms: number) => void): Listen {
   const [state, setState] = useState<ListenState>({ kind: 'idle' });
-  const timeline = useMemo(() => buildTimeline(score), [score]);
+  const timeline = useMemo(() => buildTimeline(score, tempoPercent), [score, tempoPercent]);
   const download = useRef<DownloadHandle | null>(null);
   const positionRef = useRef(onPosition);
   positionRef.current = onPosition;

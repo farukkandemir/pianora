@@ -64,7 +64,7 @@ export default function SettingsTab() {
             right={<Text variant="body" tone="muted">Version {Constants.expoConfig?.version ?? '1.0'}</Text>}
           />
           {/* CC BY 3.0 attribution for the sampled piano used by Listen. */}
-          <SettingsRow title="Piano sound" subtitle="Salamander Grand Piano by Alexander Holm, CC BY 3.0" />
+          <SettingsRow title="Salamander Grand Piano" subtitle="Piano sound by Alexander Holm · CC BY 3.0" />
         </SettingsGroup>
       </View>
     </Screen>

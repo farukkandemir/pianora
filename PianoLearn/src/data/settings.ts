@@ -12,13 +12,19 @@ export interface Settings {
   autoReconnect: boolean;
   rightHand: HandColorKey;
   leftHand: HandColorKey;
+  /** Listen plays the piece at this percentage of the score's tempo. */
+  listenSpeed: ListenSpeed;
 }
+
+export type ListenSpeed = 50 | 75 | 100;
+export const LISTEN_SPEEDS: ListenSpeed[] = [50, 75, 100];
 
 export const DEFAULT_SETTINGS: Settings = {
   showKeyboard: true,
   autoReconnect: true,
   rightHand: 'cobalt',
   leftHand: 'amber',
+  listenSpeed: 100,
 };
 
 export async function loadSettings(): Promise<Settings> {
