@@ -8,7 +8,7 @@ import { Icon, useCurtain, type IconName } from '@/ui';
 const TABS: { name: string; title: string; icon: IconName }[] = [
   { name: 'index', title: 'Library', icon: 'home' },
   { name: 'connect', title: 'Connect', icon: 'bluetooth' },
-  { name: 'practice', title: 'Practice', icon: 'music' },
+  { name: 'browse', title: 'Browse', icon: 'compass' },
   { name: 'settings', title: 'Settings', icon: 'settings' },
 ];
 

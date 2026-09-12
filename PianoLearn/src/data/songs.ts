@@ -18,6 +18,8 @@ export interface SongRecord {
   fileName: string;
   importedAt: number;
   totalMeasures: number;
+  /** Set when the song was added from the built-in catalogue. */
+  catalogId: string | null;
 }
 
 export interface SongProgress {
@@ -41,6 +43,7 @@ interface SongRow {
   file_name: string;
   imported_at: number;
   total_measures: number;
+  catalog_id: string | null;
 }
 
 interface ProgressRow {
@@ -84,7 +87,14 @@ export function validateForImport(bytes: Uint8Array): LoadedScore {
   return loaded;
 }
 
-export async function importSong(picked: File): Promise<SongRecord> {
+/** Catalogue pieces carry their own title/composer; the files often have none. */
+export interface ImportMeta {
+  catalogId: string;
+  title: string;
+  composer: string;
+}
+
+export async function importSong(picked: File, meta?: ImportMeta): Promise<SongRecord> {
   let bytes: Uint8Array;
   try {
     bytes = await picked.bytes();
@@ -102,18 +112,19 @@ export async function importSong(picked: File): Promise<SongRecord> {
   }
   const record: SongRecord = {
     id,
-    title: loaded.score.title ?? guessTitle(picked.name),
-    composer: loaded.score.composer ?? null,
+    title: meta?.title ?? loaded.score.title ?? guessTitle(picked.name),
+    composer: meta?.composer ?? loaded.score.composer ?? null,
     fileName,
     importedAt: Date.now(),
     totalMeasures: loaded.score.measures.length,
+    catalogId: meta?.catalogId ?? null,
   };
 
   try {
     const db = await getDb();
     await db.runAsync(
-      'INSERT INTO songs (id, title, composer, file_name, imported_at, total_measures) VALUES (?, ?, ?, ?, ?, ?)',
-      record.id, record.title, record.composer, record.fileName, record.importedAt, record.totalMeasures,
+      'INSERT INTO songs (id, title, composer, file_name, imported_at, total_measures, catalog_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      record.id, record.title, record.composer, record.fileName, record.importedAt, record.totalMeasures, record.catalogId,
     );
   } catch (e) {
     deleteSongFile(fileName);
@@ -168,7 +179,10 @@ export async function saveProgress(p: Omit<SongProgress, 'updatedAt'>): Promise<
 }
 
 function toSong(r: SongRow): SongRecord {
-  return { id: r.id, title: r.title, composer: r.composer, fileName: r.file_name, importedAt: r.imported_at, totalMeasures: r.total_measures };
+  return {
+    id: r.id, title: r.title, composer: r.composer, fileName: r.file_name,
+    importedAt: r.imported_at, totalMeasures: r.total_measures, catalogId: r.catalog_id ?? null,
+  };
 }
 
 function toProgress(r: ProgressRow): SongProgress {

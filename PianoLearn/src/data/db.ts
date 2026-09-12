@@ -5,7 +5,7 @@
 import { openDatabaseAsync, type SQLiteDatabase } from 'expo-sqlite';
 
 const DB_NAME = 'pianolearn.db';
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 
 let dbPromise: Promise<SQLiteDatabase> | undefined;
 
@@ -54,6 +54,11 @@ async function migrate(db: SQLiteDatabase): Promise<void> {
         value TEXT NOT NULL
       );
     `);
+  }
+
+  if (current < 3) {
+    // Which built-in catalogue piece a song came from, if any (Browse shows "Added").
+    await db.execAsync('ALTER TABLE songs ADD COLUMN catalog_id TEXT');
   }
 
   await db.execAsync(`PRAGMA user_version = ${SCHEMA_VERSION}`);
