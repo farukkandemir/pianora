@@ -27,7 +27,6 @@ export interface SongRecord {
 export interface SongProgress {
   songId: string;
   lastMeasure: number;
-  tempoPercent: number;
   handMode: HandMode;
   loopStart: number | null;
   loopEnd: number | null;
@@ -61,7 +60,6 @@ interface SongRow {
 interface ProgressRow {
   song_id: string;
   last_measure: number;
-  tempo_percent: number;
   hand_mode: HandMode;
   loop_start: number | null;
   loop_end: number | null;
@@ -149,7 +147,7 @@ export async function importSong(picked: File, meta?: ImportMeta): Promise<SongR
 export async function listSongs(): Promise<SongListItem[]> {
   const db = await getDb();
   const rows = await db.getAllAsync<SongRow & Partial<ProgressRow>>(`
-    SELECT s.*, p.song_id, p.last_measure, p.tempo_percent, p.hand_mode, p.loop_start, p.loop_end, p.updated_at
+    SELECT s.*, p.song_id, p.last_measure, p.hand_mode, p.loop_start, p.loop_end, p.updated_at
     FROM songs s LEFT JOIN song_progress p ON p.song_id = s.id
     ORDER BY COALESCE(p.updated_at, s.imported_at) DESC
   `);
@@ -197,13 +195,13 @@ export async function getProgress(songId: string): Promise<SongProgress | null> 
 export async function saveProgress(p: Omit<SongProgress, 'updatedAt'>): Promise<void> {
   const db = await getDb();
   await db.runAsync(
-    `INSERT INTO song_progress (song_id, last_measure, tempo_percent, hand_mode, loop_start, loop_end, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)
+    `INSERT INTO song_progress (song_id, last_measure, hand_mode, loop_start, loop_end, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?)
      ON CONFLICT(song_id) DO UPDATE SET
-       last_measure = excluded.last_measure, tempo_percent = excluded.tempo_percent,
-       hand_mode = excluded.hand_mode, loop_start = excluded.loop_start,
-       loop_end = excluded.loop_end, updated_at = excluded.updated_at`,
-    p.songId, p.lastMeasure, p.tempoPercent, p.handMode, p.loopStart, p.loopEnd, Date.now(),
+       last_measure = excluded.last_measure, hand_mode = excluded.hand_mode,
+       loop_start = excluded.loop_start, loop_end = excluded.loop_end,
+       updated_at = excluded.updated_at`,
+    p.songId, p.lastMeasure, p.handMode, p.loopStart, p.loopEnd, Date.now(),
   );
 }
 
@@ -216,7 +214,7 @@ function toSong(r: SongRow): SongRecord {
 }
 
 function toProgress(r: ProgressRow): SongProgress {
-  return { songId: r.song_id, lastMeasure: r.last_measure, tempoPercent: r.tempo_percent, handMode: r.hand_mode, loopStart: r.loop_start, loopEnd: r.loop_end, updatedAt: r.updated_at };
+  return { songId: r.song_id, lastMeasure: r.last_measure, handMode: r.hand_mode, loopStart: r.loop_start, loopEnd: r.loop_end, updatedAt: r.updated_at };
 }
 
 function newId(): string {
