@@ -69,7 +69,7 @@ public class PianoMidiModule: Module {
 
       let finish: () -> Void = { [weak self] in
         self?.pairingDelegate = nil
-        self?.bluetooth.rememberConnected()
+        self?.bluetooth.rememberConnected(createManager: true)
         self?.refreshConnections()
         promise.resolve(nil)
       }
@@ -139,7 +139,7 @@ public class PianoMidiModule: Module {
     }
     sendEvent("onSourcesChanged", ["sources": listSources()])
     // A new Bluetooth source may have appeared (picker or auto-reconnect).
-    bluetooth.rememberConnected()
+    bluetooth.rememberConnected(createManager: false)
   }
 
   private func refConPointer(for uid: Int32) -> UnsafeMutablePointer<Int32> {

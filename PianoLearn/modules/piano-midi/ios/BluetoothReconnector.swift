@@ -46,8 +46,12 @@ final class BluetoothReconnector: NSObject, CBCentralManagerDelegate {
   }
 
   /// Record every currently connected BLE MIDI peripheral as known.
-  func rememberConnected() {
-    guard let central = ensureCentral(), central.state == .poweredOn else { return }
+  /// Creating the central manager shows the Bluetooth permission alert, so
+  /// the periodic refresh passes `createManager: false` and only the pairing
+  /// flow (behind a user tap) may create it.
+  func rememberConnected(createManager: Bool) {
+    let manager = createManager ? ensureCentral() : central
+    guard let central = manager, central.state == .poweredOn else { return }
     let connected = central.retrieveConnectedPeripherals(withServices: [Self.midiService])
     var list = knownDevices
     for p in connected {
@@ -61,11 +65,14 @@ final class BluetoothReconnector: NSObject, CBCentralManagerDelegate {
 
   /// Ask iOS to connect to every known device. Safe to call repeatedly.
   func reconnectKnown() {
+    // Nothing to reconnect on a fresh install. Creating the central manager
+    // is what shows the Bluetooth permission alert, so do not create it until
+    // there is a remembered piano or the user taps Pair.
+    let ids = knownDevices.compactMap { UUID(uuidString: $0.id) }
+    guard !ids.isEmpty else { return }
     wantsReconnect = true
     guard let central = ensureCentral() else { return }
     guard central.state == .poweredOn else { return } // will run from didUpdateState
-    let ids = knownDevices.compactMap { UUID(uuidString: $0.id) }
-    guard !ids.isEmpty else { return }
     for p in central.retrievePeripherals(withIdentifiers: ids) {
       peripherals[p.identifier] = p
       if p.state == .connected { onStatus(.connected, known(for: p)); continue }
