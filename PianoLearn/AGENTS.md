@@ -33,6 +33,23 @@ bounce when a tab is selected, the curtain fade into practice. Motion explains a
 - Research every dependency before adding it: maintenance, license, native code, production use. No speculative installs. Remove unused packages promptly.
 - Keep `npx expo-doctor`, `npm run typecheck`, and `npm test` green.
 
+## Workflow for a feature request
+Every step below ends with a stop. Do not run two steps in one go.
+1. **Brief.** The owner states the goal, the constraints, and what not to touch.
+2. **Research.** Search the docs and vet the options: stability (stable over beta or preview),
+   maintenance, licence, cost per use. Come back with two or three choices and one
+   recommendation. Stop.
+3. **Decide.** The owner picks. Nothing that was not picked gets built.
+4. **Plan.** In plan mode: branch name, files, chunks, how each chunk is verified, what it costs.
+   Stop for approval.
+5. **Implement one chunk.** Typecheck, tests, and a real run on the simulator or device.
+   Summarise what changed and where. Stop.
+6. **Review.** `/code-review` on the diff before the owner reads it.
+7. **Commit, merge, push only when the owner says so.**
+
+Changing a library, a runtime pattern, or a dependency mid-implementation is a new decision:
+name the options and wait, even when a template or a doc pushes the new thing.
+
 ## Architecture
 - `src/engine/` is pure TypeScript with no React or native imports. Parser, event builder, Wait Mode. Unit-tested with Jest.
 - `src/sheet/` renders notation with OpenSheetMusicDisplay inside a WebView. `viewer.html` is the page; `SheetView.tsx` is the RN wrapper. The OSMD bundle is inlined into `viewerHtml.generated.ts` by `scripts/build-sheet-html.mjs` (runs on postinstall, file is gitignored).
