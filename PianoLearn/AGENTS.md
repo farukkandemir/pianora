@@ -50,6 +50,18 @@ Every step below ends with a stop. Do not run two steps in one go.
 Changing a library, a runtime pattern, or a dependency mid-implementation is a new decision:
 name the options and wait, even when a template or a doc pushes the new thing.
 
+### Superpowers, adjusted for this project
+The Superpowers plugin drives the steps above (brainstorming, writing-plans, executing-plans,
+code review, finishing a branch). Where its defaults differ from ours, ours win:
+- **Plain branches, never git worktrees.** Metro and the simulator run from this folder; a
+  second checkout breaks that.
+- **Tests where they earn their keep, not test-first everywhere.** Pure logic (`src/engine/`,
+  key normalisation in the backend) gets unit tests. I/O glue over fetch, the file system and
+  SQLite gets a real run on the simulator or device instead. No tests written to satisfy a
+  process.
+- **Plans live in the repo** at `docs/superpowers/plans/`, the plugin default. The owner reads
+  them later.
+
 ## Architecture
 - `src/engine/` is pure TypeScript with no React or native imports. Parser, event builder, Wait Mode. Unit-tested with Jest.
 - `src/sheet/` renders notation with OpenSheetMusicDisplay inside a WebView. `viewer.html` is the page; `SheetView.tsx` is the RN wrapper. The OSMD bundle is inlined into `viewerHtml.generated.ts` by `scripts/build-sheet-html.mjs` (runs on postinstall, file is gitignored).
