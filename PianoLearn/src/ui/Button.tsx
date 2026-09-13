@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, View, type PressableProps, type ViewStyle } from
 import { useTheme } from '@/theme';
 import { Text } from './Text';
 
-type Variant = 'accent' | 'ink' | 'muted';
+type Variant = 'accent' | 'ink' | 'muted' | 'tint';
 type Size = 'md' | 'lg';
 
 export type ButtonProps = Omit<PressableProps, 'style' | 'children'> & {
@@ -23,8 +23,8 @@ export type ButtonProps = Omit<PressableProps, 'style' | 'children'> & {
 /** Pill button. Pressed state dims slightly and shrinks a hair, like a native control. */
 export function Button({ label, variant = 'ink', size = 'lg', iconLeft, iconRight, block, disabled, style, ...rest }: ButtonProps) {
   const { colors, radius, spacing, shadows } = useTheme();
-  const bg = variant === 'accent' ? colors.accent : variant === 'ink' ? colors.ink : colors.surfaceMuted;
-  const tone = variant === 'muted' ? 'ink' : variant === 'accent' ? 'onAccent' : 'onInk';
+  const bg = variant === 'accent' ? colors.accent : variant === 'ink' ? colors.ink : variant === 'tint' ? colors.accentTint : colors.surfaceMuted;
+  const tone = variant === 'muted' ? 'ink' : variant === 'accent' ? 'onAccent' : variant === 'tint' ? 'accent' : 'onInk';
   const height = size === 'lg' ? 54 : 44;
   return (
     <Pressable

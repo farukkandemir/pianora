@@ -3,7 +3,7 @@
  * The hero fills the screen; two washes in the page colour keep the type and
  * the button readable over it (same stretched-PNG trick as the Library card).
  */
-import { useRouter, type Href } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { Image, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -53,8 +53,7 @@ export default function WelcomeScreen() {
           variant="accent"
           block
           iconRight={<Icon name="arrow-right" size={18} tone="onAccent" />}
-          // '/first-piece' isn't a typed route until Task 4 adds the file.
-          onPress={() => router.push('/first-piece' as Href)}
+          onPress={() => router.push('/first-piece')}
         />
         <View style={[styles.compat, { gap: spacing.sm }]}>
           <Icon name="bluetooth" size={14} tone="muted" />
