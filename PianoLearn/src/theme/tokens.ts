@@ -101,6 +101,31 @@ export const darkColors: ThemeColors = {
 };
 
 /** Colours a hand can wear. Green and red are kept for correct and wrong keys. */
+/**
+ * Placeholder art: a piece with no cover shows a quiet diagonal gradient
+ * between two of these tones, chosen from its id. Low contrast on purpose,
+ * so a pending or failed cover reads as "nothing here yet" next to the
+ * painted ones.
+ */
+export const artTints: [string, string][] = [
+  ['#9DBCE0', '#DCE7F3'], // sky into pale blue
+  ['#E8B8A0', '#F6E4D6'], // peach into cream
+  ['#A6C9A4', '#E3EED8'], // leaf into pale green
+  ['#BBA6DB', '#E8DFF3'], // lavender into lilac
+  ['#E6C48F', '#F5E8D0'], // apricot into sand
+  ['#9FCBC9', '#DFEEEC'], // teal into mist
+];
+
+/** The same pairs for the dark surface: deeper, still clearly coloured. */
+export const darkArtTints: [string, string][] = [
+  ['#3E5F87', '#27364A'],
+  ['#8A5A45', '#4B3630'],
+  ['#4C7452', '#2C3F31'],
+  ['#66508A', '#3A3149'],
+  ['#8A6C3E', '#4A3E2A'],
+  ['#3F7370', '#29403F'],
+];
+
 export const handPalette = {
   cobalt: '#3B6FE0',
   violet: '#7B61C9',
@@ -193,7 +218,8 @@ export type Theme = {
   fonts: ThemeFonts;
   type: typeof type;
   shadows: typeof shadows;
+  artTints: [string, string][];
 };
 
-export const lightTheme: Theme = { colors, spacing, radius, fonts: systemFonts, type, shadows };
-export const darkTheme: Theme = { colors: darkColors, spacing, radius, fonts: systemFonts, type, shadows };
+export const lightTheme: Theme = { colors, spacing, radius, fonts: systemFonts, type, shadows, artTints };
+export const darkTheme: Theme = { colors: darkColors, spacing, radius, fonts: systemFonts, type, shadows, artTints: darkArtTints };
