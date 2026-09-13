@@ -4,11 +4,14 @@
     "slug": "PianoLearn",
     "version": "1.0.0",
     "orientation": "default",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/icon-light.png",
     "scheme": "pianolearn",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon",
+      "icon": {
+        "light": "./assets/images/icon-light.png",
+        "dark": "./assets/images/icon-dark.png"
+      },
       "bundleIdentifier": "com.farukkandemir.pianolearn",
       "infoPlist": {
         "NSBluetoothAlwaysUsageDescription": "PianoLearn uses Bluetooth to connect to your MIDI piano."
@@ -29,11 +32,12 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#FCFBFD",
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76,
+          "image": "./assets/images/icon-light.png",
+          "imageWidth": 160,
+          "backgroundColor": "#FDF9F6",
           "dark": {
-            "backgroundColor": "#26292E"
+            "image": "./assets/images/icon-dark.png",
+            "backgroundColor": "#1B2331"
           }
         }
       ],
