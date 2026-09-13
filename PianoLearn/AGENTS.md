@@ -13,6 +13,18 @@ behavior for beginners by default. Prefer accurate, musician-grade behavior with
 Full spec: `../PianoLearn_V1_Spec.md`. Target: iOS App Store first. Playback is silent for now (cursor only).
 Test device: iPhone 16 Pro. Keyboard: Casio, Bluetooth MIDI preferred.
 
+## Feel: simple and lively
+The app should feel simple and alive at the same time. Screens stay plain and calm: no
+decoration, one plum accent per screen, quiet type, nothing that moves on its own. Every
+interaction answers with a small, physical response: the pressed dip on a button, the SF Symbol
+bounce when a tab is selected, the curtain fade into practice. Motion explains a state change
+(press, select, arrive, leave); it is never ornament.
+- When adding or restyling any interaction, ask what its small honest response is, and add it with
+  restraint: short, eased, tied to the change.
+- Prefer the platform's own responses (SF Symbol effects, native pressed states) over invented ones.
+- Keep the surface simple so the motion reads. Motion that draws attention to itself is wrong here;
+  the native iOS 26 glass tab bar was rejected for exactly that.
+
 ## How we work
 - The owner is an experienced web developer new to mobile. Explain mobile concepts in web terms, briefly.
 - Do one chunk of work, then stop and summarize what changed and where. No long write-ups.
