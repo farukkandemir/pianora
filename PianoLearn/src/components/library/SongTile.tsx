@@ -41,14 +41,14 @@ export function SongTile({ song, width, onOpen, onRename, onDelete }: SongTilePr
           </ContextMenu.Items>
           <ContextMenu.Preview>
             <VStack modifiers={[frame({ width, height: width }), clipShape('roundedRectangle', radius.lg)]}>
-              <SongArt songId={song.id} width={width} height={width} radius={radius.lg} />
+              <SongArt songId={song.id} cover={song.coverFile} width={width} height={width} radius={radius.lg} />
             </VStack>
           </ContextMenu.Preview>
           <ContextMenu.Trigger>
             {/* onLongPress is a no-op on purpose: once the press lasts long enough for
                 the system menu, React Native drops the tap, so practice opens on tap only. */}
             <Pressable onPress={onOpen} onLongPress={() => {}} delayLongPress={250} style={{ width, height: width }}>
-              <SongArt songId={song.id} width={width} height={width} radius={radius.lg} />
+              <SongArt songId={song.id} cover={song.coverFile} width={width} height={width} radius={radius.lg} />
             </Pressable>
           </ContextMenu.Trigger>
         </ContextMenu>

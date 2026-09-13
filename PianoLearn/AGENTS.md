@@ -28,6 +28,7 @@ bounce when a tab is selected, the curtain fade into practice. Motion explains a
 ## How we work
 - The owner is an experienced web developer new to mobile. Explain mobile concepts in web terms, briefly.
 - Do one chunk of work, then stop and summarize what changed and where. No long write-ups.
+- Every change starts on its own branch, before the first file is touched. Never work on master. "Commit" means commit on the branch; merge or push only when the owner asks.
 - Owner runs system-level installs (brew, Xcode, simulators) themselves. Give the command, don't run it.
 - Research every dependency before adding it: maintenance, license, native code, production use. No speculative installs. Remove unused packages promptly.
 - Keep `npx expo-doctor`, `npm run typecheck`, and `npm test` green.

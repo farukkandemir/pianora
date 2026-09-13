@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
+import { onCoverChange } from './covers';
 import { listSongs, type SongListItem } from './songs';
 
 /** Library list with a manual refresh; screens call refresh after mutations. */
@@ -18,6 +19,7 @@ export function useSongs() {
 
   useEffect(() => {
     refresh();
+    return onCoverChange(() => { void refresh(); });
   }, [refresh]);
 
   return { songs, error, refresh };

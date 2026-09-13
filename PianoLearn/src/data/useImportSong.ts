@@ -6,6 +6,7 @@
 import { useCallback, useState } from 'react';
 import { Alert } from 'react-native';
 
+import { requestCover } from './covers';
 import { pickSongFile } from './files';
 import { importSong, ImportError, type SongRecord } from './songs';
 
@@ -16,7 +17,10 @@ export function useImportSong() {
     setBusy(true);
     try {
       const file = await pickSongFile();
-      return file ? await importSong(file) : null;
+      if (!file) return null;
+      const song = await importSong(file);
+      requestCover(song);
+      return song;
     } catch (e) {
       Alert.alert('Could not import', e instanceof ImportError ? e.message : 'Something went wrong while importing.');
       return null;

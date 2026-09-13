@@ -32,6 +32,32 @@ export function deleteSongFile(fileName: string): void {
   if (f.exists) f.delete();
 }
 
+function coversDir(): Directory {
+  const dir = new Directory(Paths.document, 'covers');
+  if (!dir.exists) dir.create({ intermediates: true });
+  return dir;
+}
+
+/** Cover images live in <Documents>/covers/<songId>.<ext>, by file name like song files. */
+export function coverFile(fileName: string): File {
+  return new File(coversDir(), fileName);
+}
+
+/** Downloads a cover into the covers folder; returns the stored file name. */
+export async function downloadCoverFile(url: string, songId: string): Promise<string> {
+  const ext = (url.split('?')[0].split('.').pop() || 'jpg').toLowerCase();
+  const fileName = `${songId}.${ext}`;
+  const target = coverFile(fileName);
+  if (target.exists) target.delete();
+  await File.downloadFileAsync(url, target);
+  return fileName;
+}
+
+export function deleteCoverFile(fileName: string): void {
+  const f = coverFile(fileName);
+  if (f.exists) f.delete();
+}
+
 /** Opens the system file picker. Returns null if the user cancels. */
 export async function pickSongFile(): Promise<File | null> {
   // No MIME filter: iOS maps MusicXML types unreliably and would grey out

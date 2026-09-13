@@ -20,7 +20,7 @@ export function ContinueCard({ song, onPress }: { song: SongListItem; onPress: (
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [{ borderRadius: radius.xl }, shadows.card, pressed && styles.pressed]}>
       <View style={[styles.card, { borderRadius: radius.xl, backgroundColor: colors.surfaceMuted }]}>
-        <SongArt songId={song.id} height={CARD_HEIGHT} radius={radius.xl} style={StyleSheet.absoluteFill} />
+        <SongArt songId={song.id} cover={song.coverFile} height={CARD_HEIGHT} radius={radius.xl} style={StyleSheet.absoluteFill} />
         <Image source={SCRIM} resizeMode="stretch" style={styles.scrim} accessibilityIgnoresInvertColors />
         <View style={[styles.bottom, { padding: 18, gap: spacing.md }]}>
           <View style={styles.titles}>

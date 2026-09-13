@@ -9,6 +9,7 @@ import { File } from 'expo-file-system';
 import { useCallback, useState } from 'react';
 import { Alert } from 'react-native';
 
+import { requestCover } from '@/data/covers';
 import { importSong, ImportError, type SongRecord } from '@/data/songs';
 import type { CatalogEntry } from './catalog';
 
@@ -21,7 +22,9 @@ export function useAddFromCatalog() {
       const asset = Asset.fromModule(entry.asset);
       await asset.downloadAsync();
       if (!asset.localUri) throw new ImportError('corrupt');
-      return await importSong(new File(asset.localUri), { catalogId: entry.id, title: entry.title, composer: entry.composer });
+      const song = await importSong(new File(asset.localUri), { catalogId: entry.id, title: entry.title, composer: entry.composer });
+      requestCover(song);
+      return song;
     } catch (e) {
       Alert.alert('Could not add piece', e instanceof ImportError ? e.message : 'Something went wrong while adding this piece.');
       return null;

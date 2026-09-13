@@ -42,3 +42,6 @@ example
 /ios
 /android
 src/sheet/viewerHtml.generated.ts
+
+# Environment
+.env*.local

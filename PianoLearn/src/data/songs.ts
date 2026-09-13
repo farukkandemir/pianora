@@ -9,7 +9,7 @@ import { MusicXmlError } from '@/engine/musicxml/parse';
 import type { HandMode } from '@/engine/model';
 
 import { getDb } from './db';
-import { deleteSongFile, readSongBytes, storeSongFile } from './files';
+import { deleteCoverFile, deleteSongFile, readSongBytes, storeSongFile } from './files';
 
 export interface SongRecord {
   id: string;
@@ -20,6 +20,8 @@ export interface SongRecord {
   totalMeasures: number;
   /** Set when the song was added from the built-in catalogue. */
   catalogId: string | null;
+  /** Downloaded cover image in the covers folder; null until one arrives. */
+  coverFile: string | null;
 }
 
 export interface SongProgress {
@@ -53,6 +55,7 @@ interface SongRow {
   imported_at: number;
   total_measures: number;
   catalog_id: string | null;
+  cover_file: string | null;
 }
 
 interface ProgressRow {
@@ -127,6 +130,7 @@ export async function importSong(picked: File, meta?: ImportMeta): Promise<SongR
     importedAt: Date.now(),
     totalMeasures: loaded.score.measures.length,
     catalogId: meta?.catalogId ?? null,
+    coverFile: null,
   };
 
   try {
@@ -174,6 +178,14 @@ export async function deleteSong(song: SongRecord): Promise<void> {
   const db = await getDb();
   await db.runAsync('DELETE FROM songs WHERE id = ?', song.id);
   deleteSongFile(song.fileName);
+  if (song.coverFile) deleteCoverFile(song.coverFile);
+}
+
+/** Records the downloaded cover for a piece. Returns false if the piece is gone. */
+export async function setSongCover(songId: string, coverFile: string): Promise<boolean> {
+  const db = await getDb();
+  const result = await db.runAsync('UPDATE songs SET cover_file = ? WHERE id = ?', coverFile, songId);
+  return result.changes > 0;
 }
 
 export async function getProgress(songId: string): Promise<SongProgress | null> {
@@ -199,6 +211,7 @@ function toSong(r: SongRow): SongRecord {
   return {
     id: r.id, title: r.title, composer: r.composer, fileName: r.file_name,
     importedAt: r.imported_at, totalMeasures: r.total_measures, catalogId: r.catalog_id ?? null,
+    coverFile: r.cover_file ?? null,
   };
 }
 
