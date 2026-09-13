@@ -16,8 +16,9 @@ function prompt(title: string, composer: string | null): string {
   const piece = composer ? `${title} by ${composer}` : title;
   return (
     `Album cover for ${piece}. Abstract, stylized interpretation, not literal or photorealistic. ` +
-    `Capture the emotion, not the dictionary meaning. Painterly, dreamy or surreal aesthetic. ` +
-    `Single unified image, no collage. Edge to edge, no text, no borders.`
+    `Capture the emotion, not the dictionary meaning. Painterly, dreamy or surreal, like oil or gouache on canvas. ` +
+    `Single unified image, no collage. Edge to edge, no text, no borders. ` +
+    `Not sci-fi, not fantasy, no galaxies or glowing light, not oversaturated.`
   );
 }
 
