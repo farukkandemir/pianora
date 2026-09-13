@@ -235,6 +235,7 @@ function Practice({ data, onReady, onError }: { data: Loaded; onReady: () => voi
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  sheet: { flex: 1 },
+  /** The score sits on the page like a sheet on a stand: inset from the chrome, rounded. */
+  sheet: { flex: 1, marginHorizontal: 12, marginVertical: 10, borderRadius: 14, overflow: 'hidden' },
   error: { padding: 16 },
 });

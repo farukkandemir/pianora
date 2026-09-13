@@ -85,7 +85,8 @@ export const darkColors: ThemeColors = {
 
   curtain: '#26292E',
   onCurtain: '#DADBDC',
-  paper: colors.paper,
+  /** One notch dimmer than light: still paper, less glare in a dark room. */
+  paper: '#E6E4E9',
 
   rightHand: colors.rightHand,
   leftHand: colors.leftHand,
