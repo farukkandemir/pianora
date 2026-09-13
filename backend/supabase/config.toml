@@ -415,5 +415,7 @@ enabled = true
 # format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":180,\"commaStyle\":\"trailing\"}"
 
 [functions.cover]
-# The app sends the publishable key, which is not a JWT; the function checks x-install-id itself.
+enabled = true
+# The app sends the publishable key, which is not a JWT; the function checks it itself.
 verify_jwt = false
+import_map = "./functions/cover/deno.json"
