@@ -5,7 +5,7 @@
 import { openDatabaseAsync, type SQLiteDatabase } from 'expo-sqlite';
 
 const DB_NAME = 'pianolearn.db';
-const SCHEMA_VERSION = 4;
+const SCHEMA_VERSION = 5;
 
 let dbPromise: Promise<SQLiteDatabase> | undefined;
 
@@ -64,6 +64,11 @@ async function migrate(db: SQLiteDatabase): Promise<void> {
   if (current < 4) {
     // File name of the downloaded cover image in <Documents>/covers, once one exists.
     await db.execAsync('ALTER TABLE songs ADD COLUMN cover_file TEXT');
+  }
+
+  if (current < 5) {
+    // Tempo was never set from the UI; Listen speed is an app-wide setting.
+    await db.execAsync('ALTER TABLE song_progress DROP COLUMN tempo_percent');
   }
 
   await db.execAsync(`PRAGMA user_version = ${SCHEMA_VERSION}`);

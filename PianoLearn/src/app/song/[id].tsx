@@ -173,7 +173,6 @@ function Practice({ data, onReady, onError }: { data: Loaded; onReady: () => voi
     const save = () => saveProgress({
       songId: data.song.id,
       lastMeasure: latest.current.measure,
-      tempoPercent: 100,
       handMode: latest.current.handMode,
       loopStart: latest.current.loop?.start ?? null,
       loopEnd: latest.current.loop?.end ?? null,
