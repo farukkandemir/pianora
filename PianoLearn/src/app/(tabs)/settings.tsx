@@ -22,7 +22,7 @@ export default function SettingsTab() {
   const piano = useMidiStatus()[0];
 
   return (
-    <Screen>
+    <Screen tabBar>
       <Text variant="title" style={{ marginBottom: spacing.xxl }}>Settings</Text>
       <View style={{ gap: spacing.xxl }}>
         <SettingsGroup title="Appearance">

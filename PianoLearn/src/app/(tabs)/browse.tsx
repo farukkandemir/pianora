@@ -66,7 +66,7 @@ export default function BrowseTab() {
   }, [added, add, refresh, openSong]);
 
   return (
-    <Screen>
+    <Screen tabBar>
       <View style={{ gap: spacing.lg, paddingBottom: spacing.xl }}>
         <Text variant="title">Browse</Text>
         <Text tone="muted">Classics in the public domain, ready to practise. Tap one to add it to your library.</Text>

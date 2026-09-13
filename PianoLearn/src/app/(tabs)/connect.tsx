@@ -51,7 +51,7 @@ export default function ConnectTab() {
   }, [remembered]);
 
   return (
-    <Screen>
+    <Screen tabBar>
       <Text variant="title" style={{ marginBottom: spacing.xxl }}>Connect</Text>
       <View style={{ gap: spacing.xxl }}>
         <Image source={SCENE} resizeMode="cover" style={[styles.scene, { borderRadius: radius.xl }]} accessibilityIgnoresInvertColors />

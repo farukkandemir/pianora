@@ -109,12 +109,12 @@ export default function LibraryScreen() {
   );
 
   if (songs === null) {
-    return <Screen>{header}</Screen>;
+    return <Screen tabBar>{header}</Screen>;
   }
 
   if (songs.length === 0) {
     return (
-      <Screen>
+      <Screen tabBar>
         {header}
         <View style={[styles.empty, { gap: spacing.md, paddingTop: spacing.xxxl }]}>
           <SheetIllustration />
@@ -137,7 +137,7 @@ export default function LibraryScreen() {
   }
 
   return (
-    <Screen inset={false}>
+    <Screen inset={false} tabBar>
       <View style={{ paddingHorizontal: spacing.screen }}>
         {header}
         <SearchField value={query} onChangeText={setQuery} placeholder="Search your pieces or composers" />

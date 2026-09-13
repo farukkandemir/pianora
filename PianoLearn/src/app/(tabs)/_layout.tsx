@@ -2,42 +2,30 @@ import { Tabs, useNavigation, type NativeStackNavigationProp } from 'expo-router
 import { useEffect, useState } from 'react';
 import { useWindowDimensions } from 'react-native';
 
+import { TabBar, type TabSpec } from '@/components/TabBar';
 import { useTheme } from '@/theme';
-import { Icon, useCurtain, type IconName } from '@/ui';
+import { useCurtain } from '@/ui';
 
-const TABS: { name: string; title: string; icon: IconName }[] = [
-  { name: 'index', title: 'Library', icon: 'home' },
-  { name: 'connect', title: 'Connect', icon: 'bluetooth' },
-  { name: 'browse', title: 'Browse', icon: 'compass' },
-  { name: 'settings', title: 'Settings', icon: 'settings' },
+const TABS: TabSpec[] = [
+  { name: 'index', title: 'Library', sf: 'music.note.list', sfSelected: 'music.note.list', icon: 'home' },
+  { name: 'connect', title: 'Connect', sf: 'pianokeys', sfSelected: 'pianokeys.inverse', icon: 'bluetooth' },
+  { name: 'browse', title: 'Browse', sf: 'square.grid.2x2', sfSelected: 'square.grid.2x2.fill', icon: 'compass' },
+  { name: 'settings', title: 'Settings', sf: 'gearshape', sfSelected: 'gearshape.fill', icon: 'settings' },
 ];
 
 type RootStackNavigation = NativeStackNavigationProp<Record<string, object | undefined>>;
 
-/** Bottom tab bar. Web analogy: the app shell's primary nav. */
+/** Bottom tabs with our own floating bar (see components/TabBar). Web analogy: the app shell's primary nav. */
 export default function TabsLayout() {
-  const { colors, fonts } = useTheme();
+  const { colors } = useTheme();
   useLowerCurtainWhenBackInPortrait();
   return (
     <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: colors.ink,
-        tabBarInactiveTintColor: colors.inkFaint,
-        tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border, borderTopWidth: 1 },
-        sceneStyle: { backgroundColor: colors.bg },
-        tabBarLabelStyle: { fontSize: 11, ...(fonts.medium ? { fontFamily: fonts.medium } : { fontWeight: '500' }) },
-      }}
+      tabBar={(props) => <TabBar {...props} tabs={TABS} />}
+      screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.bg } }}
     >
       {TABS.map((t) => (
-        <Tabs.Screen
-          key={t.name}
-          name={t.name}
-          options={{
-            title: t.title,
-            tabBarIcon: ({ focused }) => <Icon name={t.icon} size={22} tone={focused ? 'ink' : 'faint'} />,
-          }}
-        />
+        <Tabs.Screen key={t.name} name={t.name} options={{ title: t.title }} />
       ))}
     </Tabs>
   );
