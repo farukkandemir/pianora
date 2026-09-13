@@ -56,6 +56,7 @@ function App() {
  */
 function Navigator({ dark }: { dark: boolean }) {
   const { colors } = useTheme();
+  const { settings } = useSettings();
   const base = dark ? DarkTheme : DefaultTheme;
   const navTheme = {
     ...base,
@@ -68,11 +69,21 @@ function Navigator({ dark }: { dark: boolean }) {
     SystemUI.setBackgroundColorAsync(colors.bg).catch(() => {});
   }, [colors.bg]);
 
+  // First run: only the two onboarding screens exist until `onboarded` is set;
+  // after that only the app does. Web analogy: a route guard that redirects
+  // /app to /welcome for a new visitor and /welcome to /app for a returning one.
+  // Practice stays outside both groups so the first piece can open into it.
   return (
     <NavigationThemeProvider value={navTheme}>
       <Stack screenOptions={{ orientation: 'portrait', contentStyle: { backgroundColor: colors.bg } }}>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="add-music" options={{ headerShown: false, presentation: 'modal' }} />
+        <Stack.Protected guard={settings.onboarded}>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="add-music" options={{ headerShown: false, presentation: 'modal' }} />
+        </Stack.Protected>
+        <Stack.Protected guard={!settings.onboarded}>
+          <Stack.Screen name="welcome" options={{ headerShown: false }} />
+          <Stack.Screen name="first-piece" options={{ headerShown: false }} />
+        </Stack.Protected>
         {/*
           Practice is the one landscape screen. It is presented as a
           full-screen modal, not pushed: iOS only honours a screen's own
