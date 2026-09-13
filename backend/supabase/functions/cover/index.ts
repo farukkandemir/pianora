@@ -79,7 +79,11 @@ Deno.serve(async (req) => {
   if (!dryRun) {
     const existing = await db.from("covers").select("path").eq("key", key).maybeSingle();
     if (existing.error) return json({ error: existing.error.message }, 500);
-    if (existing.data) return json({ url: publicUrl(db, existing.data.path), cached: true });
+    // Trust the row only if the file is still in the bucket: clearing the bucket
+    // from the dashboard must lead to a repaint, not a URL that 404s.
+    if (existing.data && (await fileExists(db, existing.data.path))) {
+      return json({ url: publicUrl(db, existing.data.path), cached: true });
+    }
   }
 
   let image: { bytes: Uint8Array<ArrayBuffer>; mime: string };
@@ -98,9 +102,9 @@ Deno.serve(async (req) => {
   const up = await db.storage.from(BUCKET).upload(path, image.bytes, { contentType: image.mime, cacheControl: "31536000", upsert: true });
   if (up.error) return json({ error: up.error.message }, 500);
 
-  const ins = await db.from("covers").insert({ key, install_id: installId, title, composer, model: provider.name, path });
-  // 23505 = unique violation: another request generated the same piece first. Its file is the same key, so fine.
-  if (ins.error && ins.error.code !== "23505") return json({ error: ins.error.message }, 500);
+  // Upsert: a stale row whose file had gone gets its model and path refreshed in place.
+  const ins = await db.from("covers").upsert({ key, install_id: installId, title, composer, model: provider.name, path }, { onConflict: "key" });
+  if (ins.error) return json({ error: ins.error.message }, 500);
 
   return json({ url: publicUrl(db, path), cached: false });
 });
@@ -139,6 +143,13 @@ async function coverKey(title: string, composer: string | null): Promise<string>
   const input = new TextEncoder().encode(`${norm(title)}|${composer ? norm(composer) : ""}`);
   const hash = await crypto.subtle.digest("SHA-256", input);
   return Array.from(new Uint8Array(hash), (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/** Storage has no head call; listing by exact name is the cheapest existence check. */
+async function fileExists(db: SupabaseClient<Database>, path: string): Promise<boolean> {
+  const { data, error } = await db.storage.from(BUCKET).list("", { search: path, limit: 1 });
+  if (error) return false;
+  return (data ?? []).some((o) => o.name === path);
 }
 
 function publicUrl(db: SupabaseClient<Database>, path: string): string {
