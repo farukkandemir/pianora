@@ -38,6 +38,11 @@ function App() {
     SplashScreen.hideAsync().catch(() => {});
   }, [loaded, settings.theme]);
 
+  // Nothing is drawn until the saved settings are in: the navigator's first
+  // screen depends on `onboarded`, and mounting it on the defaults would show
+  // Welcome for a frame before the router swaps to the Library.
+  if (!loaded) return null;
+
   return (
     <ThemeProvider theme={scheme === 'dark' ? darkTheme : lightTheme} fontsLoaded={fontsLoaded} hands={{ right: settings.rightHand, left: settings.leftHand }}>
       <StatusBar barStyle={scheme === 'dark' ? 'light-content' : 'dark-content'} />
