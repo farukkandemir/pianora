@@ -4,7 +4,7 @@
  * as proof the link works). Pairing itself is Apple's Bluetooth MIDI sheet.
  */
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Image, Pressable, StyleSheet, View } from 'react-native';
+import { Alert, Image, Linking, Pressable, StyleSheet, View } from 'react-native';
 
 import { noteLabel } from '@/components/PianoKeyboard';
 import { useMidiStatus } from '@/practice/useMidiStatus';
@@ -27,12 +27,14 @@ export default function ConnectTab() {
   const piano = useMidiStatus()[0];
   const [known, setKnown] = useState<KnownBluetoothDevice[]>(() => safeKnownDevices());
   const [lastNote, setLastNote] = useState<string | null>(null);
+  const [help, setHelp] = useState(false);
 
   useEffect(() => {
     const sub = addMidiListener((m) => { if (m.type === 'noteOn') setLastNote(noteLabel(m.note)); });
     return () => sub.remove();
   }, []);
   useEffect(() => { setKnown(safeKnownDevices()); }, [piano]);
+  useEffect(() => { if (piano) setHelp(false); }, [piano]);
 
   const pair = useCallback(async () => {
     try {
@@ -41,6 +43,8 @@ export default function ConnectTab() {
       Alert.alert('Bluetooth is off', 'Turn on Bluetooth in Settings, then try again.');
     }
     setKnown(safeKnownDevices());
+    // The list was dismissed with nothing connected: show the checklist.
+    setHelp(true);
   }, []);
 
   const remembered = piano ? known.find((d) => d.name === piano.name) : undefined;
@@ -58,14 +62,14 @@ export default function ConnectTab() {
         {piano ? (
           <Connected piano={piano} lastNote={lastNote} onPair={pair} onForget={remembered ? forget : undefined} />
         ) : (
-          <NotConnected onPair={pair} />
+          <NotConnected onPair={pair} help={help} />
         )}
       </View>
     </Screen>
   );
 }
 
-function NotConnected({ onPair }: { onPair: () => void }) {
+function NotConnected({ onPair, help }: { onPair: () => void; help: boolean }) {
   const { spacing } = useTheme();
   return (
     <>
@@ -75,9 +79,31 @@ function NotConnected({ onPair }: { onPair: () => void }) {
       </View>
       <View style={{ gap: spacing.lg }}>
         <Button label="Pair a Bluetooth piano" variant="accent" block iconLeft={<Icon name="bluetooth" size={18} tone="onAccent" />} onPress={onPair} />
-        <Text variant="caption" tone="faint" center>USB works too. Plug in and it connects on its own.</Text>
+        {help ? (
+          <View style={{ gap: spacing.md, paddingTop: spacing.sm }}>
+            <Text variant="subheading">Piano not in the list?</Text>
+            <ChecklistItem>Turn on Bluetooth MIDI on the piano.</ChecklistItem>
+            <ChecklistItem>Close other music apps.</ChecklistItem>
+            <ChecklistItem>Pair here, not in iOS Settings.</ChecklistItem>
+            <Pressable onPress={() => Linking.openSettings()} accessibilityRole="link">
+              <ChecklistItem>Allow Bluetooth for piano.learn in Settings.</ChecklistItem>
+            </Pressable>
+          </View>
+        ) : (
+          <Text variant="caption" tone="faint" center>USB works too. Plug in and it connects on its own.</Text>
+        )}
       </View>
     </>
+  );
+}
+
+function ChecklistItem({ children }: { children: string }) {
+  const { colors, spacing } = useTheme();
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md }}>
+      <View style={{ width: 6, height: 6, borderRadius: 3, marginTop: 8, backgroundColor: colors.accentInk }} />
+      <Text tone="muted" style={{ flex: 1 }}>{children}</Text>
+    </View>
   );
 }
 
