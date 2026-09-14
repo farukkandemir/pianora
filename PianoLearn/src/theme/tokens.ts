@@ -63,28 +63,30 @@ export type ThemeColors = { [K in keyof typeof colors]: string };
 
 /**
  * Dark: neutral charcoal, soft grey text, the same plum on fills. Chosen in
- * Paper ("Dark mode" page, Slack-style charcoal, S3). The muted surface is
- * darker than the page, as in light, so fields and segmented tracks keep
- * their relationship to the ground.
+ * Paper ("Dark mode" page, "Library · dark, near black vs ink", D2). The page
+ * is the app's own ink, the same navy as the curtain and the title card, so
+ * dark mode and the transition into practice are one material. The muted
+ * surface is darker than the page, as in light, so fields and segmented
+ * tracks keep their relationship to the ground.
  */
 export const darkColors: ThemeColors = {
-  bg: '#26292E',
-  surface: '#30343A',
-  surfaceMuted: '#1F2226',
-  border: '#44484F',
+  bg: '#1E2433',
+  surface: '#262D3E',
+  surfaceMuted: '#181D2A',
+  border: '#343C50',
 
-  ink: '#DADBDC',
-  inkMuted: '#B3B4B6',
-  inkFaint: '#8A8C90',
-  onInk: '#26292E',
+  ink: '#EEF0F5',
+  inkMuted: '#ADB4C4',
+  inkFaint: '#7B8294',
+  onInk: '#1E2433',
   onAccent: '#FFFFFF',
 
   accent: colors.accent,
-  accentInk: '#B99BD0',
-  accentTint: '#433A4B',
+  accentInk: '#C7ACDD',
+  accentTint: '#3B3350',
 
-  curtain: '#26292E',
-  onCurtain: '#DADBDC',
+  curtain: '#1E2433',
+  onCurtain: '#EEF0F5',
   /** One notch dimmer than light: still paper, less glare in a dark room. */
   paper: '#E6E4E9',
 
