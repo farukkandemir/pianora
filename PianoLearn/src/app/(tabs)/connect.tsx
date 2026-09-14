@@ -7,7 +7,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Alert, Image, Linking, Pressable, StyleSheet, View } from 'react-native';
 
 import { noteLabel } from '@/components/PianoKeyboard';
-import { useMidiStatus } from '@/practice/useMidiStatus';
+import { connectedPianos, useMidiStatus } from '@/practice/useMidiStatus';
 import { useTheme } from '@/theme';
 import { Button, Card, Icon, Screen, Text } from '@/ui';
 import {
@@ -43,8 +43,8 @@ export default function ConnectTab() {
       Alert.alert('Bluetooth is off', 'Turn on Bluetooth in Settings, then try again.');
     }
     setKnown(safeKnownDevices());
-    // The list was dismissed with nothing connected: show the checklist.
-    setHelp(true);
+    // The list was dismissed: show the checklist only if nothing connected.
+    setHelp(connectedPianos().length === 0);
   }, []);
 
   const remembered = piano ? known.find((d) => d.name === piano.name) : undefined;
