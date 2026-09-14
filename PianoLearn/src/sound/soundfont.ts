@@ -37,7 +37,11 @@ export function downloadSoundfont(onProgress: (fraction: number) => void): Downl
   const target = soundfontFile();
   if (target.exists) target.delete();
   const controller = new AbortController();
+  // Foreground session: the transfer runs inside the app at full speed. The
+  // default background session hands it to iOS's power-saving daemon, which
+  // moved this file at about 1 MB/s while Safari managed 60 on the same phone.
   const task = new DownloadTask(SOUNDFONT_URL, target, {
+    sessionType: 'foreground',
     signal: controller.signal,
     onProgress: ({ bytesWritten, totalBytes }) => {
       const total = totalBytes > 0 ? totalBytes : SOUNDFONT_BYTES;
