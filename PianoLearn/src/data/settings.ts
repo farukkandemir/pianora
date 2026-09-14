@@ -16,6 +16,10 @@ export interface Settings {
   listenSpeed: ListenSpeed;
   /** Light or dark chrome; 'system' follows the phone. */
   theme: ThemeSetting;
+  /** True once the user has finished or skipped the first-run screens. Gates the tab shell. */
+  onboarded: boolean;
+  /** True once the "Pair your piano" sheet has been shown on the practice screen. It shows once, ever. */
+  pianoPromptSeen: boolean;
 }
 
 export type ThemeSetting = 'system' | 'light' | 'dark';
@@ -35,6 +39,8 @@ export const DEFAULT_SETTINGS: Settings = {
   leftHand: 'amber',
   listenSpeed: 100,
   theme: 'system',
+  onboarded: false,
+  pianoPromptSeen: false,
 };
 
 export async function loadSettings(): Promise<Settings> {

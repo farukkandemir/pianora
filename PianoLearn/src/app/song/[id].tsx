@@ -3,7 +3,7 @@
  */
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, StyleSheet, Text, View } from 'react-native';
+import { Alert, Animated, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PianoKeyboard } from '@/components/PianoKeyboard';
@@ -11,6 +11,7 @@ import { LISTEN_SPEEDS } from '@/data/settings';
 import { getProgress, getSong, openSong, saveProgress, type SongRecord } from '@/data/songs';
 import { useSettings } from '@/data/useSettings';
 import type { HandMode, MeasureRange, Score } from '@/engine/model';
+import { NoPianoSheet } from '@/practice/NoPianoSheet';
 import { PracticeTitleCard } from '@/practice/PracticeTitleCard';
 import { PracticeTopBar } from '@/practice/PracticeTopBar';
 import { useListen } from '@/practice/useListen';
@@ -19,6 +20,7 @@ import { usePracticeSession } from '@/practice/usePracticeSession';
 import { soundingNoteAtMs } from '@/engine/timeline';
 import { SheetView, type SheetMessage, type SheetViewHandle } from '@/sheet/SheetView';
 import { useTheme } from '@/theme';
+import { showBluetoothPairing } from '../../../modules/piano-midi';
 
 interface Loaded {
   song: SongRecord;
@@ -76,7 +78,7 @@ export default function PracticeScreen() {
       <View style={styles.container}>
         <Stack.Screen options={{ headerShown: false }} />
         {error && cardGone ? <Text style={[styles.error, { color: colors.wrong }]}>{error}</Text> : null}
-        {data ? <Practice data={data} onReady={onReady} onError={setError} /> : null}
+        {data ? <Practice data={data} onReady={onReady} onError={setError} cardGone={cardGone} /> : null}
         {!cardGone ? (
           <PracticeTitleCard
             opacity={cardOpacity}
@@ -93,7 +95,7 @@ export default function PracticeScreen() {
   );
 }
 
-function Practice({ data, onReady, onError }: { data: Loaded; onReady: () => void; onError: (message: string) => void }) {
+function Practice({ data, onReady, onError, cardGone }: { data: Loaded; onReady: () => void; onError: (message: string) => void; cardGone: boolean }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
@@ -120,6 +122,22 @@ function Practice({ data, onReady, onError }: { data: Loaded; onReady: () => voi
   }, [data.xml, sheetReady, insets.left, insets.right]);
 
   const [sheetLoaded, setSheetLoaded] = useState(false);
+
+  // First run: offer pairing once, after the score has rendered, only when
+  // no piano is connected. Closing it or connecting a piano ends it for good.
+  const [promptOpen, setPromptOpen] = useState(false);
+  useEffect(() => {
+    if (cardGone && midiSources.length === 0 && !settings.pianoPromptSeen) setPromptOpen(true);
+  }, [cardGone, midiSources.length, settings.pianoPromptSeen]);
+  useEffect(() => {
+    if (midiSources.length > 0 && promptOpen) { setPromptOpen(false); setSetting('pianoPromptSeen', true); }
+  }, [midiSources.length, promptOpen, setSetting]);
+  const dismissPrompt = useCallback(() => { setPromptOpen(false); setSetting('pianoPromptSeen', true); }, [setSetting]);
+  const pairFromPrompt = useCallback(async () => {
+    dismissPrompt();
+    try { await showBluetoothPairing(); } catch { Alert.alert('Bluetooth is off', 'Turn on Bluetooth in Settings, then try again.'); }
+  }, [dismissPrompt]);
+
   useEffect(() => {
     if (!sheetLoaded) return;
     sheet.current?.setLoop(loop);
@@ -228,6 +246,7 @@ function Practice({ data, onReady, onError }: { data: Loaded; onReady: () => voi
           height={84}
         />
       ) : null}
+      <NoPianoSheet visible={promptOpen} onPair={pairFromPrompt} onDismiss={dismissPrompt} />
     </View>
   );
 }

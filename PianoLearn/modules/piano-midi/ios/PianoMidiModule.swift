@@ -19,6 +19,11 @@ public class PianoMidiModule: Module {
   /// until teardown so the receive callback can't read a dangling pointer.
   private var refCons: [Int32: UnsafeMutablePointer<Int32>] = [:]
   private var pairingDelegate: PairingDelegate?
+  /// The presented pairing list, with the Bluetooth sources that already
+  /// existed when it opened; a new one appearing dismisses it.
+  private var pairingNav: UINavigationController?
+  private var pairingBaseline: Set<Int32> = []
+  private var pairingFinish: (() -> Void)?
   private var timebase = mach_timebase_info_data_t()
   private lazy var bluetooth = BluetoothReconnector { [weak self] status, device in
     var body: [String: Any] = ["status": status.rawValue]
@@ -63,20 +68,25 @@ public class PianoMidiModule: Module {
         promise.reject("E_NO_VIEW_CONTROLLER", "No view controller available to present from")
         return
       }
-      let picker = CABTMIDICentralViewController()
+      let picker = PairingPicker()
       let nav = UINavigationController(rootViewController: picker)
       nav.modalPresentationStyle = .formSheet
 
       let finish: () -> Void = { [weak self] in
         self?.pairingDelegate = nil
+        self?.pairingNav = nil
+        self?.pairingFinish = nil
         self?.bluetooth.rememberConnected(createManager: true)
         self?.refreshConnections()
         promise.resolve(nil)
       }
       let delegate = PairingDelegate(onDismiss: finish)
       self.pairingDelegate = delegate
+      self.pairingNav = nav
+      self.pairingFinish = finish
+      self.pairingBaseline = Set(self.bluetoothSourceIDs())
       nav.presentationController?.delegate = delegate
-      picker.navigationItem.rightBarButtonItem = UIBarButtonItem(
+      picker.doneItem = UIBarButtonItem(
         systemItem: .done,
         primaryAction: UIAction { _ in nav.dismiss(animated: true, completion: finish) }
       )
@@ -140,6 +150,27 @@ public class PianoMidiModule: Module {
     sendEvent("onSourcesChanged", ["sources": listSources()])
     // A new Bluetooth source may have appeared (picker or auto-reconnect).
     bluetooth.rememberConnected(createManager: false)
+    dismissPairingIfConnected()
+  }
+
+  /// Bluetooth MIDI sources currently online, by CoreMIDI unique ID.
+  private func bluetoothSourceIDs() -> [Int32] {
+    (0..<MIDIGetNumberOfSources()).compactMap { index in
+      let source = MIDIGetSource(index)
+      let info = describe(source)
+      return info["transport"] as? String == "bluetooth" && info["isOffline"] as? Bool == false ? uniqueID(of: source) : nil
+    }
+  }
+
+  /// The pairing list closes on its own once a piano that was not there
+  /// when it opened comes online; in landscape the list covers the whole
+  /// screen, and the user has already done what they came for.
+  private func dismissPairingIfConnected() {
+    guard let nav = pairingNav, let finish = pairingFinish else { return }
+    guard bluetoothSourceIDs().contains(where: { !pairingBaseline.contains($0) }) else { return }
+    pairingNav = nil
+    pairingFinish = nil
+    nav.dismiss(animated: true, completion: finish)
   }
 
   private func refConPointer(for uid: Int32) -> UnsafeMutablePointer<Int32> {
@@ -269,6 +300,16 @@ public class PianoMidiModule: Module {
 }
 
 /// Detects the user swiping the pairing sheet away instead of tapping Done.
+/// CABTMIDICentralViewController drops bar buttons set before it lays out;
+/// putting Done back on every layout pass keeps an exit on screen.
+private final class PairingPicker: CABTMIDICentralViewController {
+  var doneItem: UIBarButtonItem?
+  override func viewWillLayoutSubviews() {
+    super.viewWillLayoutSubviews()
+    if navigationItem.rightBarButtonItem == nil { navigationItem.rightBarButtonItem = doneItem }
+  }
+}
+
 private final class PairingDelegate: NSObject, UIAdaptivePresentationControllerDelegate {
   private let onDismiss: () -> Void
   init(onDismiss: @escaping () -> Void) { self.onDismiss = onDismiss }
