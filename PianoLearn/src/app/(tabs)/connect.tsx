@@ -33,8 +33,7 @@ export default function ConnectTab() {
     const sub = addMidiListener((m) => { if (m.type === 'noteOn') setLastNote(noteLabel(m.note)); });
     return () => sub.remove();
   }, []);
-  useEffect(() => { setKnown(safeKnownDevices()); }, [piano]);
-  useEffect(() => { if (piano) setHelp(false); }, [piano]);
+  useEffect(() => { setKnown(safeKnownDevices()); if (piano) setHelp(false); }, [piano]);
 
   const pair = useCallback(async () => {
     try {
@@ -85,7 +84,7 @@ function NotConnected({ onPair, help }: { onPair: () => void; help: boolean }) {
             <ChecklistItem>Turn on Bluetooth MIDI on the piano.</ChecklistItem>
             <ChecklistItem>Close other music apps.</ChecklistItem>
             <ChecklistItem>Pair here, not in iOS Settings.</ChecklistItem>
-            <Pressable onPress={() => Linking.openSettings()} accessibilityRole="link">
+            <Pressable onPress={() => { Linking.openSettings().catch(() => {}); }} accessibilityRole="button">
               <ChecklistItem>Allow Bluetooth for piano.learn in Settings.</ChecklistItem>
             </Pressable>
           </View>

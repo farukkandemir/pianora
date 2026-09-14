@@ -10,7 +10,7 @@ import { addSourcesListener, listSources, type MidiSource } from '../../modules/
 export function useMidiStatus(): MidiSource[] {
   const [sources, setSources] = useState<MidiSource[]>([]);
   useEffect(() => {
-    try { setSources(listSources()); } catch { /* module unavailable */ }
+    setSources(safeListSources());
     const sub = addSourcesListener(setSources);
     return () => sub.remove();
   }, []);
@@ -18,6 +18,10 @@ export function useMidiStatus(): MidiSource[] {
 }
 
 /** Connected pianos right now: USB and Bluetooth MIDI sources that are online. */
-export function connectedPianos(sources: MidiSource[] = listSources()): MidiSource[] {
+export function connectedPianos(sources: MidiSource[] = safeListSources()): MidiSource[] {
   return sources.filter((s) => !s.isOffline && (s.transport === 'usb' || s.transport === 'bluetooth'));
+}
+
+function safeListSources(): MidiSource[] {
+  try { return listSources(); } catch { return []; /* module unavailable */ }
 }

@@ -78,7 +78,7 @@ export default function PracticeScreen() {
       <View style={styles.container}>
         <Stack.Screen options={{ headerShown: false }} />
         {error && cardGone ? <Text style={[styles.error, { color: colors.wrong }]}>{error}</Text> : null}
-        {data ? <Practice data={data} onReady={onReady} onError={setError} /> : null}
+        {data ? <Practice data={data} onReady={onReady} onError={setError} cardGone={cardGone} /> : null}
         {!cardGone ? (
           <PracticeTitleCard
             opacity={cardOpacity}
@@ -95,7 +95,7 @@ export default function PracticeScreen() {
   );
 }
 
-function Practice({ data, onReady, onError }: { data: Loaded; onReady: () => void; onError: (message: string) => void }) {
+function Practice({ data, onReady, onError, cardGone }: { data: Loaded; onReady: () => void; onError: (message: string) => void; cardGone: boolean }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
@@ -127,8 +127,8 @@ function Practice({ data, onReady, onError }: { data: Loaded; onReady: () => voi
   // no piano is connected. Closing it or connecting a piano ends it for good.
   const [promptOpen, setPromptOpen] = useState(false);
   useEffect(() => {
-    if (sheetLoaded && midiSources.length === 0 && !settings.pianoPromptSeen) setPromptOpen(true);
-  }, [sheetLoaded, midiSources.length, settings.pianoPromptSeen]);
+    if (cardGone && midiSources.length === 0 && !settings.pianoPromptSeen) setPromptOpen(true);
+  }, [cardGone, midiSources.length, settings.pianoPromptSeen]);
   useEffect(() => {
     if (midiSources.length > 0 && promptOpen) { setPromptOpen(false); setSetting('pianoPromptSeen', true); }
   }, [midiSources.length, promptOpen, setSetting]);

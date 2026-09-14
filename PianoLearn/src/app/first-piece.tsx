@@ -40,7 +40,6 @@ export default function FirstPieceScreen() {
     set('onboarded', true);
     if (!songId) return;
     await curtain.raise();
-    router.replace('/');
     router.push({ pathname: '/song/[id]', params: { id: songId } });
   }, [set, curtain, router]);
 

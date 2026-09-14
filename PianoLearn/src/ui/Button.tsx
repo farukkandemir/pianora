@@ -9,7 +9,7 @@ type Size = 'md' | 'lg';
 
 export type ButtonProps = Omit<PressableProps, 'style' | 'children'> & {
   label: string;
-  /** accent = the one plum action on a screen; ink = structural; muted = secondary. */
+  /** accent = the one plum action on a screen; ink = structural; muted = secondary; tint = secondary in plum. */
   variant?: Variant;
   size?: Size;
   /** Leading or trailing icon node (an SVG or symbol). */

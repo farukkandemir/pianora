@@ -42,7 +42,7 @@ export function NoPianoSheet({ visible, onPair, onDismiss }: Props) {
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
       <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: colors.curtain, opacity: Animated.multiply(progress, 0.28) }]}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onDismiss} accessibilityLabel="Play on screen for now" />
+        <Pressable style={StyleSheet.absoluteFill} onPress={onDismiss} accessible={false} />
       </Animated.View>
       <Animated.View
         style={[

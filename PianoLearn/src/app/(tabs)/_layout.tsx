@@ -35,7 +35,9 @@ export default function TabsLayout() {
  * The Library raises the curtain before opening the landscape practice
  * modal. Lower it only once the tab shell is on screen again (the modal has
  * finished dismissing) and the window is portrait, so the rotation back is
- * never visible.
+ * never visible. The mount run (appearances === 0) is skipped: onboarding
+ * raises the curtain before this shell exists, and nothing is ever up on a
+ * normal launch.
  */
 function useLowerCurtainWhenBackInPortrait() {
   const navigation = useNavigation<RootStackNavigation>();
@@ -52,6 +54,6 @@ function useLowerCurtainWhenBackInPortrait() {
   );
 
   useEffect(() => {
-    if (height > width) curtain.lower();
+    if (appearances > 0 && height > width) curtain.lower();
   }, [appearances, width, height, curtain]);
 }
