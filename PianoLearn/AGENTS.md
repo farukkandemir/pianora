@@ -61,6 +61,10 @@ code review, finishing a branch). Where its defaults differ from ours, ours win:
   process.
 - **Plans live in the repo** at `docs/superpowers/plans/`, the plugin default. The owner reads
   them later.
+- **Research lives in the repo** at `docs/research/`, one dated Markdown file per topic, with
+  sources. Read the relevant one before a brief on that topic: onboarding
+  (`2026-09-13-onboarding.md`), the Listen download and sound file (`2026-09-14-listen-download.md`),
+  pricing and paywalls (`2026-09-14-pricing.md`).
 
 ## Architecture
 - `src/engine/` is pure TypeScript with no React or native imports. Parser, event builder, Wait Mode. Unit-tested with Jest.
